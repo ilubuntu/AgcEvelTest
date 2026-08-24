@@ -1,0 +1,61 @@
+{
+  "case_id": "case-adaptive-proportion-scale-tool",
+  "mode": "from_base",
+  "source_base_commit": "57137527e69b928452609fe0e5dae18ce407eaad",
+  "source_answer_commit": null,
+  "removal_commits": [],
+  "golden_commits": [
+    "6f9c4eb3dae7d5262137342146394cbfdbb5fef8"
+  ],
+  "test_commits": [
+    "2130220ab6f6b355168ec327579ef543c7da13a8"
+  ],
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "task",
+  "fail_to_pass": [
+    "should_keep_main_menu_equal_ratio_on_other",
+    "should_keep_order_equal_ratio_on_other"
+  ],
+  "pass_to_pass": [
+    "should_start_ability_successfully",
+    "should_show_main_menu_equal_items_visible",
+    "should_keep_main_menu_no_horizontal_overflow",
+    "should_show_order_equal_items_visible",
+    "should_keep_order_no_horizontal_overflow",
+    "should_keep_main_menu_equal_ratio_on_sm",
+    "should_keep_order_equal_ratio_on_sm"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "products/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "SmEqualShareProportionTest",
+        "file": "products/entry/src/ohosTest/ets/test/SmEqualShareProportion.test.ets"
+      }
+    ],
+    "foldable": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "products/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "MdLgFailToPassTest",
+        "file": "products/entry/src/ohosTest/ets/test/MdLgFailToPass.test.ets"
+      }
+    ],
+    "tablet": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "products/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "MdLgFailToPassTest",
+        "file": "products/entry/src/ohosTest/ets/test/MdLgFailToPass.test.ets"
+      }
+    ]
+  }
+}

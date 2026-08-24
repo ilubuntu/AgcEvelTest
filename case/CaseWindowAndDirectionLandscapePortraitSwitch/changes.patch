@@ -1,0 +1,483 @@
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 0000000..2106f2d
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,21 @@
++
++<!-- ONE-MULTI-SKILL-START -->
++## 一多适配
++
++适配流程与域知识在 `.onemulti/`，**动手前先读 `.onemulti/SKILL.md`**。
++
++- `.onemulti/SKILL.md` — UI 范围、批次 SPEC、施工验证与报告流程
++- `.onemulti/domains/*.md` — 六个 UI 域（按症状加载，一次不超过 2 个）
++- `.onemulti/assets/` — 20 个编译验证过的 `.ets`，动手写之前先来这里找
++- `.onemulti/references/` — 任务账本、结构选型、根因、验证和报告口径
++
++编译、装机、设备与模拟器、日志、官方文档一律用 `devecocli`，本 skill 不重复这些能力，
++也不做 ArkTS 语法检查。
++
++```bash
++devecocli build                               # 编译与类型检查
++python3 .onemulti/scripts/static-check.py .   # 高置信度静态规则
++```
++
++**布局是否正确必须有目标形态证据**——本 Skill 不提供自动的运行态视觉断言。
++<!-- ONE-MULTI-SKILL-END -->
+diff --git a/commons/lib_common/src/main/ets/utils/WindowOrientationHelper.ets b/commons/lib_common/src/main/ets/utils/WindowOrientationHelper.ets
+index 72bf9c8..7a9d55c 100644
+--- a/commons/lib_common/src/main/ets/utils/WindowOrientationHelper.ets
++++ b/commons/lib_common/src/main/ets/utils/WindowOrientationHelper.ets
+@@ -1,4 +1,8 @@
+ import { window } from '@kit.ArkUI';
++import { BusinessError } from '@kit.BasicServicesKit';
++import { Logger } from './Logger';
++
++const ORIENTATION_TAG = 'WindowOrientationHelper';
+ 
+ export type WindowOrientationType =
+   | 'UNSPECIFIED'
+@@ -352,4 +356,34 @@ export class WindowOrientationHelper {
+         return window.Orientation.UNSPECIFIED;
+     }
+   }
++
++  /**
++   * 将方向策略应用到当前主窗口。
++   * 方向设置是窗口级全局副作用，调用方需在页面切换时负责重放各自页面的策略。
++   * @param orientation 目标方向策略
++   * @param fallback 主策略不被当前系统支持时的降级策略，可省略
++   */
++  static setMainWindowOrientation(orientation: Orientation, fallback?: Orientation): void {
++    try {
++      const windowStage = AppStorage.get('windowStage') as window.WindowStage;
++      if (!windowStage) {
++        Logger.warn(ORIENTATION_TAG, 'windowStage is not ready, skip setMainWindowOrientation.');
++        return;
++      }
++      const mainWindow = windowStage.getMainWindowSync();
++      mainWindow.setPreferredOrientation(orientation).catch((error: BusinessError) => {
++        if (fallback !== undefined) {
++          Logger.warn(ORIENTATION_TAG,
++            `setPreferredOrientation ${orientation} failed: ${JSON.stringify(error)}, fallback to ${fallback}`);
++          mainWindow.setPreferredOrientation(fallback).catch((fallbackError: BusinessError) => {
++            Logger.error(ORIENTATION_TAG, `fallback setPreferredOrientation failed: ${JSON.stringify(fallbackError)}`);
++          });
++        } else {
++          Logger.error(ORIENTATION_TAG, `setPreferredOrientation ${orientation} failed: ${JSON.stringify(error)}`);
++        }
++      });
++    } catch (e) {
++      Logger.error(ORIENTATION_TAG, `setMainWindowOrientation exception: ${JSON.stringify(e)}`);
++    }
++  }
+ }
+diff --git a/commons/lib_common/src/main/module.json5 b/commons/lib_common/src/main/module.json5
+index 09cdc5c..96870f5 100644
+--- a/commons/lib_common/src/main/module.json5
++++ b/commons/lib_common/src/main/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_common",
+     "type": "har",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ]
+   }
+ }
+\ No newline at end of file
+diff --git a/commons/lib_common/src/ohosTest/module.json5 b/commons/lib_common/src/ohosTest/module.json5
+index 11a431c..4d9c970 100644
+--- a/commons/lib_common/src/ohosTest/module.json5
++++ b/commons/lib_common/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_common_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/commons/lib_video_api/src/main/module.json5 b/commons/lib_video_api/src/main/module.json5
+index 7a2c4b4..c7def7c 100644
+--- a/commons/lib_video_api/src/main/module.json5
++++ b/commons/lib_video_api/src/main/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_video_api",
+     "type": "har",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ]
+   }
+ }
+\ No newline at end of file
+diff --git a/commons/lib_video_api/src/ohosTest/module.json5 b/commons/lib_video_api/src/ohosTest/module.json5
+index 19831ef..fa4fe6d 100644
+--- a/commons/lib_video_api/src/ohosTest/module.json5
++++ b/commons/lib_video_api/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_video_api_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/commons/lib_widget/src/main/module.json5 b/commons/lib_widget/src/main/module.json5
+index caeb3d4..6e4565a 100644
+--- a/commons/lib_widget/src/main/module.json5
++++ b/commons/lib_widget/src/main/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_widget",
+     "type": "har",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ]
+   }
+ }
+diff --git a/commons/lib_widget/src/ohosTest/module.json5 b/commons/lib_widget/src/ohosTest/module.json5
+index a392d3b..1836eb6 100644
+--- a/commons/lib_widget/src/ohosTest/module.json5
++++ b/commons/lib_widget/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "lib_widget_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/components/recorded_player/src/main/ets/pages/PlayerComponent.ets b/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
+index 18fa20a..c5adc72 100644
+--- a/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
++++ b/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
+@@ -46,6 +46,24 @@ export struct PlayerComponent {
+   mWindow?: window.Window;
+   private surfaceId: string = '';
+   private timer: number = -1;
++  // 窗口尺寸变化：横屏自动进入全屏布局，回到竖屏自动退出（分屏时交还系统）
++  private windowSizeCallback: (size: window.Size) => void = (size: window.Size) => {
++    if (this.windowStatusType === 5) {
++      return
++    }
++    const landscape = size.width > size.height
++    if (landscape && !this.isLayoutFullScreen) {
++      this.isLayoutFullScreen = true
++      this.setFullScreen(true)
++    } else if (!landscape && this.isLayoutFullScreen) {
++      this.isLayoutFullScreen = false
++      this.setFullScreen(false)
++    }
++  }
++  // 播放页每次显示时重放基础方向策略（覆盖从横屏全屏返回下层播放页等场景）
++  private playPageShownCallback: () => void = () => {
++    this.applyPlayBasePolicy()
++  }
+   // 选集
+   @Param selectionEvent: (idx: number) => void = () => {
+   }
+@@ -86,19 +104,48 @@ export struct PlayerComponent {
+     this.selectionEvent(idx)
+   }
+ 
+-  // 设置窗口方向
+-  setR(orientation: number) {
++  // 设置窗口方向；fallback 为主策略不被当前系统支持时的降级策略
++  setR(orientation: window.Orientation, fallback?: window.Orientation) {
+     window.getLastWindow(getContext(this)).then((win) => {
+       win.setPreferredOrientation(orientation).then(() => {
+         hilog.info(0x0000, TAG, 'win.setPreferredOrientation success');
+       }).catch((error: BusinessError) => {
+-        hilog.error(0x0000, TAG, 'PiPWindow.create error：: %{public}s', JSON.stringify(error));
++        hilog.error(0x0000, TAG, `setPreferredOrientation %{public}s error: %{public}s`,
++          orientation.toString(), JSON.stringify(error));
++        if (fallback !== undefined) {
++          win.setPreferredOrientation(fallback).catch((fallbackError: BusinessError) => {
++            hilog.error(0x0000, TAG, 'fallback setPreferredOrientation error：: %{public}s',
++              JSON.stringify(fallbackError));
++          })
++        }
+       })
+     }).catch((error: BusinessError) => {
+-      hilog.error(0x0000, TAG, 'PiPWindow.create error：: %{public}s', JSON.stringify(error));
++      hilog.error(0x0000, TAG, 'getLastWindow error：: %{public}s', JSON.stringify(error));
+     })
+   }
+ 
++  /**
++   * 播放页基础方向策略：分屏时交还系统控制；
++   * 窗口已横屏（如平板横屏进入播放页）保持传感器自由旋转并直接进入全屏布局；
++   * 否则先竖屏展示，随后跟随传感器旋转（受系统自动旋转开关控制）。
++   */
++  applyPlayBasePolicy() {
++    if (this.windowStatusType === 5) {
++      this.setR(window.Orientation.UNSPECIFIED)
++      return
++    }
++    const rect = this.mWindow?.getWindowProperties().windowRect
++    if (rect && rect.width > rect.height) {
++      this.setR(window.Orientation.AUTO_ROTATION_RESTRICTED)
++      if (!this.isLayoutFullScreen) {
++        this.isLayoutFullScreen = true
++        this.setFullScreen(true)
++      }
++    } else {
++      this.setR(window.Orientation.USER_ROTATION_PORTRAIT, window.Orientation.AUTO_ROTATION_RESTRICTED)
++    }
++  }
++
+   // 设置沉浸式窗口
+   setFullScreen(isLayoutFullScreen: boolean) {
+     this.fullScreen(isLayoutFullScreen)
+@@ -142,23 +189,32 @@ export struct PlayerComponent {
+       // 获取窗口属性
+       let properties = currentWindow.getWindowProperties();
+       let rect = properties.windowRect;
+-      if (this.getUIContext().px2vp(rect.height) <= 680) {
++      if (this.getUIContext().px2vp(rect.height) <= 680 && rect.width < rect.height) {
+         this.windowStatusType = 5
+         this.playerVM.windowStatusType = this.windowStatusType
+         this.isLayoutFullScreen = false
+-        this.setR(1)
++        this.setR(window.Orientation.UNSPECIFIED)
+         this.setFullScreen(false)
++      } else {
++        this.applyPlayBasePolicy()
+       }
+       currentWindow.on('windowStatusChange', (windowStatusType) => {
++        const prevStatusType = this.windowStatusType
+         this.windowStatusType = windowStatusType
+         this.playerVM.windowStatusType = this.windowStatusType
+         if (windowStatusType === 5) {
+           this.isLayoutFullScreen = false
+-          this.setR(1)
++          this.setR(window.Orientation.UNSPECIFIED)
+           this.setFullScreen(false)
++        } else if (prevStatusType === 5) {
++          // 退出分屏后恢复播放页方向策略
++          this.applyPlayBasePolicy()
+         }
+       });
++      // 传感器旋转联动全屏：横屏进入全屏布局，回到竖屏退出
++      currentWindow.on('windowSizeChange', this.windowSizeCallback);
+     })
++    emitter.on('playPageOrientationBase', this.playPageShownCallback)
+     emitter.on('playerPause', (event: emitter.EventData) => {
+       let isPlaying = event.data!.isPlaying as boolean
+       if (isPlaying) {
+@@ -234,8 +290,11 @@ export struct PlayerComponent {
+ 
+   aboutToDisappear() {
+     this.isLayoutFullScreen = false
+-    this.setR(this.isLayoutFullScreen ? 2 : 1)
++    // 方向策略不在销毁时重置，交由目标页显示时重放（首页走 IndexVM.applyHomeOrientation，
++    // 下层播放页走 playPageOrientationBase），避免窗口级方向副作用的恢复竞态
+     this.setFullScreen(this.isLayoutFullScreen)
++    this.mWindow?.off('windowSizeChange', this.windowSizeCallback)
++    emitter.off('playPageOrientationBase', this.playPageShownCallback)
+     // 释放AVPlayer资源
+     PipManager.getInstance().player.isCreate = true
+     PipManager.getInstance().player.release();
+@@ -329,7 +388,12 @@ export struct PlayerComponent {
+             isLayoutFullScreen: this.isLayoutFullScreen,
+             fullScreen: (isLayoutFullScreen: boolean) => {
+               this.isLayoutFullScreen = isLayoutFullScreen
+-              this.setR(this.isLayoutFullScreen ? 2 : 1)
++              // 全屏按钮主动切换：进入全屏转横屏后再允许传感器旋转；退出先回竖屏再跟随传感器
++              this.setR(
++                this.isLayoutFullScreen ? window.Orientation.USER_ROTATION_LANDSCAPE :
++                window.Orientation.USER_ROTATION_PORTRAIT,
++                this.isLayoutFullScreen ? window.Orientation.LANDSCAPE :
++                window.Orientation.AUTO_ROTATION_RESTRICTED)
+               this.setFullScreen(this.isLayoutFullScreen)
+             },
+             selectionEvent: (item: MovieItem) => {
+diff --git a/components/recorded_player/src/main/module.json5 b/components/recorded_player/src/main/module.json5
+index 8e3b821..2767477 100644
+--- a/components/recorded_player/src/main/module.json5
++++ b/components/recorded_player/src/main/module.json5
+@@ -3,7 +3,8 @@
+     "name": "recorded_player",
+     "type": "har",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "requestPermissions": [
+       {
+diff --git a/components/recorded_player/src/ohosTest/module.json5 b/components/recorded_player/src/ohosTest/module.json5
+index 8988db9..397b274 100644
+--- a/components/recorded_player/src/ohosTest/module.json5
++++ b/components/recorded_player/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "recorded_player_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/features/business_home/src/main/module.json5 b/features/business_home/src/main/module.json5
+index b8f2280..c0b6859 100644
+--- a/features/business_home/src/main/module.json5
++++ b/features/business_home/src/main/module.json5
+@@ -4,7 +4,8 @@
+     "type": "har",
+     "routerMap": "$profile:route_map",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ]
+   }
+ }
+diff --git a/features/business_home/src/ohosTest/module.json5 b/features/business_home/src/ohosTest/module.json5
+index 3cd7eb6..71bd272 100644
+--- a/features/business_home/src/ohosTest/module.json5
++++ b/features/business_home/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "business_home_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/features/business_play/src/main/ets/pages/PlayPage.ets b/features/business_play/src/main/ets/pages/PlayPage.ets
+index e036ee9..162b38a 100644
+--- a/features/business_play/src/main/ets/pages/PlayPage.ets
++++ b/features/business_play/src/main/ets/pages/PlayPage.ets
+@@ -6,6 +6,7 @@ import { VideoInfoView } from '../components/VideoInfoView';
+ import { PlayViewModel } from '../viewmodels/PlayViewModel';
+ import { PlayerComponent } from 'recorded_player';
+ import { AppStorageV2, promptAction } from '@kit.ArkUI';
++import { emitter } from '@kit.BasicServicesKit';
+ 
+ @Builder
+ export function PlayPageBuilder() {
+@@ -161,6 +162,10 @@ struct PlayPage {
+         this.vm.init(videoId, index)
+       }
+     })
++    .onShown(() => {
++      // 每次显示（含从上层播放页返回）时重放播放页方向策略
++      emitter.emit('playPageOrientationBase')
++    })
+     .onWillDisappear(() => {
+       this.vm.addHistory()
+       this.vm.saveSectionNoAndTime()
+diff --git a/features/business_play/src/main/module.json5 b/features/business_play/src/main/module.json5
+index 147a809..c3d56a3 100644
+--- a/features/business_play/src/main/module.json5
++++ b/features/business_play/src/main/module.json5
+@@ -4,7 +4,8 @@
+     "type": "har",
+     "routerMap": "$profile:route_map",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "requestPermissions": [
+       {
+diff --git a/features/business_play/src/ohosTest/module.json5 b/features/business_play/src/ohosTest/module.json5
+index 043fc14..00bbdcd 100644
+--- a/features/business_play/src/ohosTest/module.json5
++++ b/features/business_play/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "business_play_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "default"
++      "default",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false
+diff --git a/products/phone/src/main/ets/viewmodels/IndexVM.ets b/products/phone/src/main/ets/viewmodels/IndexVM.ets
+index b96acf7..bf8b69a 100644
+--- a/products/phone/src/main/ets/viewmodels/IndexVM.ets
++++ b/products/phone/src/main/ets/viewmodels/IndexVM.ets
+@@ -1,5 +1,14 @@
+ import { UIContext, uiObserver, window } from '@kit.ArkUI';
+-import { BaseViewModel, BreakpointUtils, Logger, RouterMap, RouterUtils, SystemBarOperation } from 'lib_common';
++import {
++  BaseViewModel,
++  BreakpointNameEnum,
++  BreakpointUtils,
++  Logger,
++  RouterMap,
++  RouterUtils,
++  SystemBarOperation,
++  WindowOrientationHelper
++} from 'lib_common';
+ 
+ const TAG = 'IndexVM';
+ 
+@@ -88,12 +97,35 @@ export class IndexVM extends BaseViewModel {
+         })
+         this.isPlayPage = false
+       }
++      // 播放页方向由 PlayerComponent 管理；其余页面（首页/闪屏/全部分类等）到达时重放首页方向策略
++      if (info.state === uiObserver.NavDestinationState.ON_SHOWN && info.name !== 'PlayPage') {
++        this.applyHomeOrientation()
++      }
+       this.navRouteModel.navDestinationUpdateListeners.forEach((callback) => {
+         callback(info)
+       })
+     })
+   }
+ 
++  /**
++   * 首页方向策略：直板屏（SM 断点）仅支持竖屏；
++   * 折叠屏展开态、平板（MD 及以上断点）支持自由旋转，且受系统自动旋转开关控制。
++   */
++  applyHomeOrientation() {
++    const orientation = this.breakPointModel.currentBreakpoint === BreakpointNameEnum.SM ?
++      window.Orientation.PORTRAIT : window.Orientation.AUTO_ROTATION_RESTRICTED;
++    WindowOrientationHelper.setMainWindowOrientation(orientation);
++    Logger.info(TAG, `applyHomeOrientation breakpoint: ${this.breakPointModel.currentBreakpoint}`);
++  }
++
++  // 断点跨越（折叠开合/分屏/窗口缩放）时，若当前不在播放页则重放首页方向策略
++  @Monitor('breakPointModel.currentBreakpoint')
++  onBreakpointChange() {
++    if (!this.isPlayPage) {
++      this.applyHomeOrientation()
++    }
++  }
++
+   // 监听WindowStage生命周期变化
+   windowStageEventListener() {
+     let windowStage = AppStorage.get('windowStage') as window.WindowStage;
+diff --git a/products/phone/src/ohosTest/module.json5 b/products/phone/src/ohosTest/module.json5
+index 427149d..9188baf 100644
+--- a/products/phone/src/ohosTest/module.json5
++++ b/products/phone/src/ohosTest/module.json5
+@@ -3,7 +3,8 @@
+     "name": "phone_test",
+     "type": "feature",
+     "deviceTypes": [
+-      "phone"
++      "phone",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false

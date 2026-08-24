@@ -1,0 +1,65 @@
+diff --git a/entry/src/main/ets/pages/DiamondAreaScenarioPage.ets b/entry/src/main/ets/pages/DiamondAreaScenarioPage.ets
+index 6cf1e3f..423b812 100644
+--- a/entry/src/main/ets/pages/DiamondAreaScenarioPage.ets
++++ b/entry/src/main/ets/pages/DiamondAreaScenarioPage.ets
+@@ -51,11 +51,12 @@ struct DiamondAreaScenarioPage {
+ 
+   @Builder
+   body() {
+-    Row({ space: SPACE_LG }) {
++    Row() {
+       ForEach(DIAMOND_ENTRIES, (item: CaseItem) => {
+         this.entryItem(item)
+       }, (item: CaseItem) => item.id)
+     }
++    .justifyContent(FlexAlign.SpaceEvenly)
+     .id('section-diamond')
+     .width(FULL_SIZE)
+     .padding({ top: SPACE_PAGE, bottom: SPACE_PAGE })
+diff --git a/entry/src/main/ets/pages/RemoteControlScenarioPage.ets b/entry/src/main/ets/pages/RemoteControlScenarioPage.ets
+index 2002493..9f96a3d 100644
+--- a/entry/src/main/ets/pages/RemoteControlScenarioPage.ets
++++ b/entry/src/main/ets/pages/RemoteControlScenarioPage.ets
+@@ -8,7 +8,6 @@ import {
+   REMOTE_KEY_SIZE,
+   RADIUS_KEY,
+   RADIUS_PANEL,
+-  SPACE_LG,
+   SPACE_PAGE,
+   SPACE_SECTION,
+   SYMBOL_FONT_KEY,
+@@ -18,7 +17,6 @@ import {
+ import { ScenarioHeader } from '../components/ScenarioChrome';
+ import { CaseItem, REMOTE_KEYS } from '../model/CaseModels';
+ import { ScenarioRouter } from '../routes/ScenarioRoutes';
+-import { LengthMetrics } from '@kit.ArkUI';
+ 
+ @Builder
+ export function remoteControlScenarioPageBuilder() {
+@@ -62,7 +60,7 @@ struct RemoteControlScenarioPage {
+   body() {
+     Column({ space: SPACE_SECTION }) {
+       this.tvScreen()
+-      Flex({ space: { main: LengthMetrics.vp(SPACE_LG), cross: LengthMetrics.vp(0) } }) {
++      Flex({ justifyContent: FlexAlign.SpaceEvenly }) {
+         ForEach(REMOTE_KEYS, (item: CaseItem) => {
+           this.keyButton(item)
+         }, (item: CaseItem) => item.id)
+diff --git a/entry/src/main/ets/pages/SidebarMenuScenarioPage.ets b/entry/src/main/ets/pages/SidebarMenuScenarioPage.ets
+index 2dd82bb..c742605 100644
+--- a/entry/src/main/ets/pages/SidebarMenuScenarioPage.ets
++++ b/entry/src/main/ets/pages/SidebarMenuScenarioPage.ets
+@@ -130,11 +130,12 @@ struct SidebarMenuScenarioPage {
+   build() {
+     NavDestination() {
+       Row() {
+-        Column({ space: SPACE_LG }) {
++        Column() {
+           ForEach(SIDEBAR_MENUS, (item: CaseItem) => {
+             this.menuItem(item)
+           }, (item: CaseItem) => item.id)
+         }
++        .justifyContent(FlexAlign.SpaceEvenly)
+         .id('section-sidebar')
+         .width(SIDEBAR_WIDTH)
+         .height(FULL_SIZE)

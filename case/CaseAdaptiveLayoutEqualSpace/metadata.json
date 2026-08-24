@@ -1,0 +1,32 @@
+{
+  "case_id": "case-adaptive-layout-equal-space",
+  "mode": "from_base",
+  "source_base_commit": "af5f7ebf438d1b7db90ff23604455936c36da6b8",
+  "source_answer_commit": null,
+  "removal_commits": [],
+  "golden_commits": [
+    "d902558337ce44fccfa8aaf9447d892d19159b18"
+  ],
+  "test_commits": [
+    "644c805240b82274d8726c37a65a90d3e6381227",
+    "19644f2903b9999a2214e8eae8d7ca8126312449",
+    "671da676e1e8e062c1832c03afa24147ec4e528c",
+    "7fb99551c31394edaf02fa4df45f6bdf19e9c580"
+  ],
+  "generated_base_commit": "af5f7ebf438d1b7db90ff23604455936c36da6b8",
+  "generated_answer_commit": "00f3c94f461bae17ab0aa6de7d344ac44cd4a80c",
+  "generated_test_commit": "da7d4d9cb88a94ff0e49fe37aa897e95d7f773ce",
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "task",
+  "fail_to_pass": [
+    "should_keep_diamond_area_gaps_equal",
+    "should_keep_sidebar_menu_gaps_equal",
+    "should_keep_remote_control_gaps_equal"
+  ],
+  "pass_to_pass": [
+    "should_keep_diamond_area_base_integrity",
+    "should_keep_sidebar_menu_base_integrity",
+    "should_keep_remote_control_base_integrity"
+  ]
+}

@@ -1,0 +1,411 @@
+diff --git a/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+new file mode 100644
+index 0000000..106d223
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+@@ -0,0 +1,98 @@
++import { afterAll, beforeAll, describe, expect, it, Level } from '@ohos/hypium';
++import { abilityDelegatorRegistry, Driver, ON } from '@kit.TestKit';
++import { JSON } from '@kit.ArkTS';
++import { getComponentBounds, getComponentWidth, navigateToPage, startAbility } from './TestHelper';
++import { MAIN_MENU_IDS_EQUAL, ORDER_TAB_IDS_EQUAL } from '../../../main/ets/common/Models';
++
++export default function commonPassToPassTest() {
++  describe('CommonPassToPassTest', () => {
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility')
++      } catch (e) {
++        console.error('CommonPassToPassTest beforeAll error' + JSON.stringify(e));
++      }
++    })
++
++    afterAll(async () => {
++      try {
++        await driver.waitForIdle(2000, 3000);
++      } catch (e) {
++        console.error('CommonPassToPassTest afterAll error' + JSON.stringify(e));
++      }
++    })
++
++    it('should_start_ability_successfully', Level.LEVEL0, async (done: Function) => {
++      try {
++        const title = await driver.findComponent(ON.text('工具栏'));
++        expect(title !== null).assertTrue();
++        await driver.delayMs(500);
++      } catch (e) {
++        console.error('should_start_ability_successfully error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_show_main_menu_equal_items_visible', Level.LEVEL0, async (done: Function) => {
++      try {
++        await navigateToPage(driver, '优惠券 / 我的收藏 工具栏');
++        for (const id of MAIN_MENU_IDS_EQUAL) {
++          const width = await getComponentWidth(driver, id);
++          expect(width).assertLarger(0);
++        }
++      } catch (e) {
++        console.error('should_show_main_menu_equal_items_visible error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_keep_main_menu_no_horizontal_overflow', Level.LEVEL1, async (done: Function) => {
++      try {
++        const containerRect = await getComponentBounds(driver, 'main-menu-equal-container');
++        const lastItemRect =
++          await getComponentBounds(driver, MAIN_MENU_IDS_EQUAL[MAIN_MENU_IDS_EQUAL.length - 1]);
++        expect(lastItemRect.right <= containerRect.right).assertTrue();
++      } catch (e) {
++        console.error('should_keep_main_menu_no_horizontal_overflow error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_show_order_equal_items_visible', Level.LEVEL0, async (done: Function) => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(1500, 2500);
++        await navigateToPage(driver, '我的订单 工具栏');
++        for (const id of ORDER_TAB_IDS_EQUAL) {
++          const width = await getComponentWidth(driver, id);
++          expect(width).assertLarger(0);
++        }
++      } catch (e) {
++        console.error('should_show_order_equal_items_visible error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_keep_order_no_horizontal_overflow', Level.LEVEL1, async (done: Function) => {
++      try {
++        const containerRect = await getComponentBounds(driver, 'order-equal-container');
++        const lastItemRect =
++          await getComponentBounds(driver, ORDER_TAB_IDS_EQUAL[ORDER_TAB_IDS_EQUAL.length - 1]);
++        expect(lastItemRect.right <= containerRect.right).assertTrue();
++      } catch (e) {
++        console.error('should_keep_order_no_horizontal_overflow error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++  })
++}
+diff --git a/entry/src/ohosTest/ets/test/List.test.ets b/entry/src/ohosTest/ets/test/List.test.ets
+index 34f757f..acdf1b7 100644
+--- a/entry/src/ohosTest/ets/test/List.test.ets
++++ b/entry/src/ohosTest/ets/test/List.test.ets
+@@ -1,3 +1,9 @@
+-export default function testsuite() {
++import commonPassToPassTest from "./CommonPassToPass.test";
++import smEqualShareProportionTest from "./SmEqualShareProportion.test";
++import mdLgFailToPassTest from "./MdLgFailToPass.test";
+ 
++export default function testsuite() {
++  commonPassToPassTest();
++  smEqualShareProportionTest();
++  mdLgFailToPassTest();
+ }
+diff --git a/entry/src/ohosTest/ets/test/MdLgFailToPass.test.ets b/entry/src/ohosTest/ets/test/MdLgFailToPass.test.ets
+new file mode 100644
+index 0000000..24e5b3c
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/MdLgFailToPass.test.ets
+@@ -0,0 +1,78 @@
++import { afterAll, beforeAll, describe, expect, it, Level } from '@ohos/hypium';
++import { abilityDelegatorRegistry, Driver } from '@kit.TestKit';
++import { JSON } from '@kit.ArkTS';
++import {
++  getBreakpointName,
++  getWindowVpWidth,
++  MAIN_MENU_RATIO,
++  navigateToPage,
++  ORDER_TAB_RATIO,
++  startAbility,
++  verifyEqualShare,
++} from './TestHelper';
++import { MAIN_MENU_IDS_EQUAL, ORDER_TAB_IDS_EQUAL } from '../../../main/ets/common/Models';
++
++export default function mdLgFailToPassTest() {
++  describe('MdLgFailToPassTest', () => {
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility')
++      } catch (e) {
++        console.error('MdLgFailToPassTest beforeAll error' + JSON.stringify(e));
++      }
++    })
++
++    afterAll(async () => {
++      try {
++        await driver.waitForIdle(2000, 3000);
++      } catch (e) {
++        console.error('MdLgFailToPassTest afterAll error' + JSON.stringify(e));
++      }
++    })
++
++    it('should_keep_main_menu_equal_ratio_on_other', Level.LEVEL1, async (done: Function) => {
++      try {
++        await navigateToPage(driver, '优惠券 / 我的收藏 工具栏');
++        const vpWidth = await getWindowVpWidth(driver, bundleName);
++        const currentBreakpoint = getBreakpointName(vpWidth);
++
++        if (['md', 'lg', 'xl'].includes(currentBreakpoint)) {
++          await verifyEqualShare(
++            driver, 'main-menu-equal-container', MAIN_MENU_IDS_EQUAL, MAIN_MENU_RATIO);
++        } else {
++          expect(false).assertTrue();
++        }
++      } catch (e) {
++        console.error('should_keep_main_menu_equal_ratio_on_other error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_keep_order_equal_ratio_on_other', Level.LEVEL1, async (done: Function) => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(1500, 2500);
++        await navigateToPage(driver, '我的订单 工具栏');
++        const vpWidth = await getWindowVpWidth(driver, bundleName);
++        const currentBreakpoint = getBreakpointName(vpWidth);
++
++        if (['md', 'lg', 'xl'].includes(currentBreakpoint)) {
++          await verifyEqualShare(
++            driver, 'order-equal-container', ORDER_TAB_IDS_EQUAL, ORDER_TAB_RATIO);
++        } else {
++          expect(false).assertTrue();
++        }
++      } catch (e) {
++        console.error('should_keep_order_equal_ratio_on_other error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++  })
++}
+diff --git a/entry/src/ohosTest/ets/test/SmEqualShareProportion.test.ets b/entry/src/ohosTest/ets/test/SmEqualShareProportion.test.ets
+new file mode 100644
+index 0000000..4660147
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/SmEqualShareProportion.test.ets
+@@ -0,0 +1,78 @@
++import { afterAll, beforeAll, describe, expect, it, Level } from '@ohos/hypium';
++import { abilityDelegatorRegistry, Driver } from '@kit.TestKit';
++import { JSON } from '@kit.ArkTS';
++import {
++  getBreakpointName,
++  getWindowVpWidth,
++  MAIN_MENU_RATIO,
++  navigateToPage,
++  ORDER_TAB_RATIO,
++  startAbility,
++  verifyEqualShare,
++} from './TestHelper';
++import { MAIN_MENU_IDS_EQUAL, ORDER_TAB_IDS_EQUAL } from '../../../main/ets/common/Models';
++
++export default function smEqualShareProportionTest() {
++  describe('SmEqualShareProportionTest', () => {
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility')
++      } catch (e) {
++        console.error('EqualShareProportionTest beforeAll error' + JSON.stringify(e));
++      }
++    })
++
++    afterAll(async () => {
++      try {
++        await driver.waitForIdle(2000, 3000);
++      } catch (e) {
++        console.error('EqualShareProportionTest afterAll error' + JSON.stringify(e));
++      }
++    })
++
++    it('should_keep_main_menu_equal_ratio_on_sm', Level.LEVEL1, async (done: Function) => {
++      try {
++        await navigateToPage(driver, '优惠券 / 我的收藏 工具栏');
++        const vpWidth = await getWindowVpWidth(driver, bundleName);
++        const currentBreakpoint = getBreakpointName(vpWidth);
++
++        if (currentBreakpoint === 'sm') {
++        await verifyEqualShare(
++          driver, 'main-menu-equal-container', MAIN_MENU_IDS_EQUAL, MAIN_MENU_RATIO);
++        } else {
++          expect(true).assertTrue();
++        }
++      } catch (e) {
++        console.error('should_keep_main_menu_equal_ratio_on_sm error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++
++    it('should_keep_order_equal_ratio_on_sm', Level.LEVEL1, async (done: Function) => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(1500, 2500);
++        await navigateToPage(driver, '我的订单 工具栏');
++        const vpWidth = await getWindowVpWidth(driver, bundleName);
++        const currentBreakpoint = getBreakpointName(vpWidth);
++
++        if (currentBreakpoint === 'sm') {
++        await verifyEqualShare(
++          driver, 'order-equal-container', ORDER_TAB_IDS_EQUAL, ORDER_TAB_RATIO);
++        } else {
++          expect(true).assertTrue();
++        }
++      } catch (e) {
++        console.error('should_keep_order_equal_ratio_on_sm error' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    })
++  })
++}
+diff --git a/entry/src/ohosTest/ets/test/TestHelper.ets b/entry/src/ohosTest/ets/test/TestHelper.ets
+new file mode 100644
+index 0000000..f499d74
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/TestHelper.ets
+@@ -0,0 +1,118 @@
++import { Want } from '@kit.AbilityKit';
++import { abilityDelegatorRegistry, Driver, ON, ResizeDirection, UiWindow } from '@kit.TestKit';
++import { expect } from '@ohos/hypium';
++import { JSON } from '@kit.ArkTS';
++import { MAIN_MENU_IDS_EQUAL, ORDER_TAB_IDS_EQUAL } from '../../../main/ets/common/Models';
++
++export const BREAKPOINT_SM = 600;
++
++export const BREAKPOINT_MD = 840;
++
++export const BREAKPOINT_LG = 1440;
++
++export const RATIO_TOLERANCE = 0.05;
++
++export const MAIN_MENU_COUNT = 4;
++
++export const MAIN_MENU_RATIO = 1 / MAIN_MENU_COUNT;
++
++export const ORDER_TAB_COUNT = 5;
++
++export const ORDER_TAB_RATIO = 1 / ORDER_TAB_COUNT;
++
++export interface Rect {
++  left: number;
++  top: number;
++  right: number;
++  bottom: number;
++}
++
++export async function startAbility(driver: Driver, bundleName: string, abilityName: string): Promise<void> {
++  const want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  }
++  await abilityDelegatorRegistry.getAbilityDelegator().startAbility(want);
++  await driver.waitForIdle(2000, 3000);
++}
++
++export async function getComponentBounds(driver: Driver, id: string): Promise<Rect> {
++  const component = await driver.findComponent(ON.id(id));
++  expect(component !== null).assertTrue();
++  const bounds = await component.getBounds();
++  return {
++    left: bounds.left,
++    top: bounds.top,
++    right: bounds.right,
++    bottom: bounds.bottom,
++  };
++}
++
++export async function getComponentWidth(driver: Driver, id: string): Promise<number> {
++  const rect = await getComponentBounds(driver, id);
++  return rect.right - rect.left;
++}
++
++export function getBreakpointName(vpWidth: number): string {
++  if (vpWidth < BREAKPOINT_SM) {
++    return 'sm';
++  } else if (vpWidth < BREAKPOINT_MD) {
++    return 'md';
++  } else if (vpWidth < BREAKPOINT_LG) {
++    return 'lg';
++  } else {
++    return 'xl';
++  }
++}
++
++export async function getWindowVpWidth(driver: Driver, bundleName: string): Promise<number> {
++  const win = await driver.findWindow({ bundleName: bundleName, active: true });
++  const bounds = await win.getBounds();
++  return px2vp(bounds.right - bounds.left);
++}
++
++export async function navigateToPage(driver: Driver, btnText: string): Promise<void> {
++  const btn = await driver.findComponent(ON.text(btnText));
++  expect(btn !== null).assertTrue();
++  await btn.click();
++  await driver.waitForIdle(1500, 2500);
++}
++
++export async function resizeToBreakPoint(
++  driver: Driver,
++  window: UiWindow,
++  targetVpWidth: number): Promise<void> {
++  try {
++    const bounds = await window.getBounds();
++    const screenHeightPx = bounds.bottom - bounds.top;
++    const targetWidthPx = Math.round(vp2px(targetVpWidth));
++    await window.resize(targetWidthPx, screenHeightPx, ResizeDirection.RIGHT);
++    await driver.waitForIdle(2000, 3000);
++  } catch (e) {
++    console.error('TestHelper: Failed to resize window, error:' + JSON.stringify(e));
++  }
++}
++
++// 等分版验证：每项 ≈ 1/N，占满容器，相邻项比 ≈ 1
++export async function verifyEqualShare(
++  driver: Driver,
++  containerId: string,
++  itemIds: string[],
++  expectedRatio: number): Promise<void> {
++  const containerWidth = await getComponentWidth(driver, containerId);
++  expect(containerWidth).assertLarger(0);
++
++  const widths: number[] = [];
++  for (const id of itemIds) {
++    const w = await getComponentWidth(driver, id);
++    expect(w).assertLarger(0);
++    widths.push(w);
++    const ratio = w / containerWidth;
++    expect(Math.abs(ratio - expectedRatio) <= RATIO_TOLERANCE).assertTrue();
++  }
++
++  for (let i = 0; i < widths.length - 1; i++) {
++    const neighborRatio = widths[i] / widths[i + 1];
++    expect(Math.abs(neighborRatio - 1) <= RATIO_TOLERANCE).assertTrue();
++  }
++}

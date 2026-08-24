@@ -1,0 +1,19 @@
+{
+  "routerMap": [
+    {
+      "name": "MeetingScenario",
+      "pageSourceFile": "src/main/ets/pages/MeetingScenarioPage.ets",
+      "buildFunction": "meetingScenarioPageBuilder"
+    },
+    {
+      "name": "FlightScenario",
+      "pageSourceFile": "src/main/ets/pages/FlightScenarioPage.ets",
+      "buildFunction": "flightScenarioPageBuilder"
+    },
+    {
+      "name": "TripScenario",
+      "pageSourceFile": "src/main/ets/pages/TripScenarioPage.ets",
+      "buildFunction": "tripScenarioPageBuilder"
+    }
+  ]
+}

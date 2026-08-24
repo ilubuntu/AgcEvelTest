@@ -1,0 +1,675 @@
+diff --git a/products/phone/src/ohosTest/ets/test/FloatTestHelper.ets b/products/phone/src/ohosTest/ets/test/FloatTestHelper.ets
+new file mode 100644
+index 0000000..3b488d6
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/FloatTestHelper.ets
+@@ -0,0 +1,367 @@
++/*
++ * 悬浮窗一多适配测试 - 公共辅助
++ * .test.ets 不能直接 import '@kit.TestKit'，故本 helper re-export 所需符号。
++ */
++import { display } from '@kit.ArkUI';
++import { Want } from '@kit.AbilityKit';
++import {
++  abilityDelegatorRegistry,
++  Driver,
++  ON,
++  On,
++  Component,
++  UiDirection,
++  UiWindow,
++  WindowMode,
++  PointerMatrix,
++  Point,
++} from '@kit.TestKit';
++
++// ============================ 常量与类型 ============================
++
++export const BUNDLE_NAME = 'tqyy.1.xxxxxx';
++
++export interface Bounds {
++  left: number;
++  top: number;
++  right: number;
++  bottom: number;
++}
++
++export interface ScreenSize {
++  width: number;
++  height: number;
++}
++
++/** 被测组件 id（复用源码已有 .id()） */
++export enum Fid {
++  LANDSCAPE_XCOMPONENT = 'xmComponent',
++  VIDEO_XCOMPONENT = 'ss_video_xcomponent',
++}
++
++// ============================ Delegator & 日志 ============================
++
++export const delegator: abilityDelegatorRegistry.AbilityDelegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++export function getBundleName(): string {
++  try {
++    const bn = abilityDelegatorRegistry.getArguments().bundleName;
++    return bn || BUNDLE_NAME;
++  } catch (e) {
++    return BUNDLE_NAME;
++  }
++}
++
++let _caseTag: string = '';
++export function setCaseTag(tag: string): void {
++  _caseTag = tag;
++}
++
++/** 纯等待（setTimeout），用于 Driver 调用之间间隔，不占 UiTest 锁 */
++export function sleep(ms: number): Promise<void> {
++  return new Promise<void>((resolve) => {
++    setTimeout(() => {
++      resolve();
++    }, ms);
++  });
++}
++
++export function dbg(msg: string): void {
++  const prefix = _caseTag ? `[FLOAT][${_caseTag}]` : '[FLOAT]';
++  console.info(`${prefix} ${msg}`);
++}
++
++export function err(msg: string): void {
++  const prefix = _caseTag ? `[FLOAT][${_caseTag}]` : '[FLOAT]';
++  console.error(`${prefix} ${msg}`);
++}
++
++// ============================ 启动 ============================
++
++export async function startAbility(driver: Driver, bundleName: string, abilityName: string): Promise<void> {
++  try {
++    const want: Want = {
++      bundleName: bundleName,
++      abilityName: abilityName,
++    };
++    await delegator.startAbility(want);
++    await driver.delayMs(1000);
++  } catch (e) {
++    err('startAbility 失败: ' + JSON.stringify(e));
++  }
++}
++
++// ============================ 屏幕尺寸 & 窗口查找 ============================
++
++export function getScreenSize(): ScreenSize {
++  try {
++    const d = display.getDefaultDisplaySync();
++    if (d.width > 0 && d.height > 0) {
++      const ok: ScreenSize = { width: d.width, height: d.height };
++      return ok;
++    }
++  } catch (e) {
++    dbg(`getScreenSize: getDefaultDisplaySync 失败: ${(e as Error).message}`);
++  }
++  const fallback: ScreenSize = { width: 1080, height: 2400 };
++  return fallback;
++}
++
++/** 按 bundleName 查找窗口，失败用 sleep 间隔重试（绕过 UiTest 并发锁） */
++export async function getUiWindow(driver: Driver): Promise<UiWindow | null> {
++  const RETRY = 3;
++  for (let i = 0; i < RETRY; i++) {
++    try {
++      const win: UiWindow = await driver.findWindow({ bundleName: getBundleName() });
++      if (win !== null && win !== undefined) {
++        return win;
++      }
++      dbg(`getUiWindow: 第${i + 1}次 findWindow 返回空`);
++    } catch (e) {
++      dbg(`getUiWindow: 第${i + 1}次 findWindow 异常: ${(e as Error).message}`);
++    }
++    if (i < RETRY - 1) {
++      await sleep(200);
++    }
++  }
++  dbg(`getUiWindow: ${RETRY} 次重试后仍未找到窗口`);
++  return null;
++}
++
++// ============================ 悬浮窗手势 ============================
++
++/** 导航条高度（屏幕高 ×3.5% 估算） */
++export function getNavBarHeight(): number {
++  const screen = getScreenSize();
++  return Math.floor(screen.height * 0.035);
++}
++
++/** 底部上滑至右上方热区触发悬浮窗手势，成功进入 FLOATING 态返回 true */
++export async function enterFloatWindow(driver: Driver): Promise<boolean> {
++  const screen = getScreenSize();
++  const navBarH = getNavBarHeight();
++  const startX = Math.floor(screen.width / 6);
++  const startY = Math.floor(screen.height - navBarH / 2);
++  dbg(`enterFloatWindow: 起点=(${startX},${startY}) 屏幕=${screen.width}x${screen.height} 导航条高=${navBarH}`);
++  const candidates: number[][] = [
++    [0.75, 0.22],
++  ];
++  for (let i = 0; i < candidates.length; i++) {
++    const endX = Math.floor(screen.width * candidates[i][0]);
++    const endY = Math.floor(screen.height * candidates[i][1]);
++    dbg(`enterFloatWindow: 轨迹 (${startX},${startY})→(${endX},${endY})`);
++    try {
++      await swipeCurve(driver, startX, startY, endX, endY, 1500);
++    } catch (e) {
++      dbg(`enterFloatWindow: 轨迹注入抛错: ${(e as Error).message}`);
++    }
++    // 等手势注入真正完成（inject 的 promise 可能提前 resolve，紧接的 Driver 调用会撞锁）
++    const dx = endX - startX;
++    const dy = endY - startY;
++    const waitMs = Math.ceil(Math.sqrt(dx * dx + dy * dy) / 1500 * 1000) + 600;
++    await sleep(waitMs);
++    await refocusAppWindow(driver);
++    if (await isFloating(driver)) {
++      dbg('enterFloatWindow: 已进入悬浮窗态');
++      return true;
++    }
++  }
++  dbg('enterFloatWindow: 未能进入悬浮窗态');
++  return false;
++}
++
++/** 单指坐标级轨迹滑动（PointerMatrix + injectMultiPointerAction），终点停留模拟松手 */
++export async function swipeCurve(
++  driver: Driver,
++  sx: number, sy: number, ex: number, ey: number, speed: number,
++): Promise<void> {
++  const dx = ex - sx;
++  const dy = ey - sy;
++  const dist = Math.sqrt(dx * dx + dy * dy);
++  const moveSteps = Math.max(2, Math.round(dist / 80));
++  const holdSteps = 2;
++  const pm: PointerMatrix = PointerMatrix.create(1, moveSteps + holdSteps);
++  for (let s = 0; s < moveSteps; s++) {
++    const t = s / (moveSteps - 1);
++    pm.setPoint(0, s, { x: Math.round(sx + dx * t), y: Math.round(sy + dy * t) });
++  }
++  const endPoint: Point = { x: ex, y: ey };
++  for (let h = 0; h < holdSteps; h++) {
++    pm.setPoint(0, moveSteps + h, endPoint);
++  }
++  dbg(`swipeCurve: steps=${moveSteps + holdSteps} speed=${speed}`);
++  await driver.injectMultiPointerAction(pm, speed);
++}
++
++/** 把焦点拉回被测窗口（悬浮窗开启后焦点可能落到系统侧） */
++export async function refocusAppWindow(driver: Driver): Promise<void> {
++  const uiWin = await getUiWindow(driver);
++  if (uiWin === null) {
++    return;
++  }
++  await driver.delayMs(100);
++  try {
++    await uiWin.focus();
++  } catch (e) {
++    dbg(`refocusAppWindow: focus 抛错: ${(e as Error).message}`);
++  }
++  await driver.delayMs(300);
++}
++
++/** 当前是否处于悬浮窗（FLOATING）态 */
++export async function isFloating(driver: Driver): Promise<boolean> {
++  const uiWin = await getUiWindow(driver);
++  if (uiWin === null) {
++    return false;
++  }
++  try {
++    return await uiWin.getWindowMode() === WindowMode.FLOATING;
++  } catch (e) {
++    dbg(`isFloating: getWindowMode 抛错: ${(e as Error).message}`);
++    return false;
++  }
++}
++
++/** 退出悬浮窗恢复全屏：小窗态先放大再 maximize */
++export async function exitFloatWindow(driver: Driver): Promise<void> {
++  if (await isFloating(driver)) {
++    dbg('exitFloatWindow: 小窗态，先放大');
++    await clickWindowCenter(driver);
++  }
++  const uiWin = await getUiWindow(driver);
++  if (uiWin === null) {
++    dbg('exitFloatWindow: 取不到窗口');
++    return;
++  }
++  try {
++    await uiWin.maximize();
++    dbg('exitFloatWindow: maximize 恢复全屏');
++  } catch (e) {
++    dbg(`exitFloatWindow: maximize 抛错，尝试 resume: ${(e as Error).message}`);
++    try {
++      await uiWin.resume();
++    } catch (e2) {
++      dbg(`exitFloatWindow: resume 也抛错: ${(e2 as Error).message}`);
++    }
++  }
++}
++
++/** 取被测窗口可视区域边界（px） */
++export async function getWindowViewBounds(driver: Driver): Promise<Bounds | null> {
++  const uiWin = await getUiWindow(driver);
++  if (uiWin === null) {
++    return null;
++  }
++  try {
++    const b = await uiWin.getBounds() as Bounds;
++    dbg(`getWindowViewBounds: L=${b.left} T=${b.top} R=${b.right} B=${b.bottom} (${b.right - b.left}x${b.bottom - b.top})`);
++    return { left: b.left, top: b.top, right: b.right, bottom: b.bottom };
++  } catch (e) {
++    dbg(`getWindowViewBounds 异常: ${(e as Error).message}`);
++    return null;
++  }
++}
++
++/** 点击悬浮窗几何中心（小窗→大窗），点击后重获取窗口句柄 */
++export async function clickWindowCenter(driver: Driver): Promise<boolean> {
++  const win = await getWindowViewBounds(driver);
++  if (win === null) {
++    dbg('clickWindowCenter: 取不到窗口');
++    return false;
++  }
++  const cx = Math.floor((win.left + win.right) / 2);
++  const cy = Math.floor((win.top + win.bottom) / 2);
++  dbg(`clickWindowCenter: (${cx},${cy})`);
++  try {
++    await driver.click(cx, cy);
++  } catch (e) {
++    dbg(`clickWindowCenter: 点击抛错: ${(e as Error).message}`);
++    return false;
++  }
++  await driver.delayMs(800);
++  await refocusAppWindow(driver);
++  return true;
++}
++
++// ============================ 组件查询 ============================
++
++/** 获取组件边界，找不到返回 null */
++export async function getBounds(driver: Driver, on: On, label?: string): Promise<Bounds | null> {
++  const tag = label ?? '组件';
++  try {
++    const comp: Component = await driver.findComponent(on);
++    if (comp === null || comp === undefined) {
++      dbg(`getBounds[${tag}]: null`);
++      return null;
++    }
++    const r = await comp.getBounds() as Bounds;
++    dbg(`getBounds[${tag}]: L=${r.left} T=${r.top} R=${r.right} B=${r.bottom} (${r.right - r.left}x${r.bottom - r.top})`);
++    return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
++  } catch (e) {
++    dbg(`getBounds[${tag}]: 异常 ${(e as Error).message}`);
++    return null;
++  }
++}
++
++/** 点击组件（若存在） */
++export async function clickIfExists(driver: Driver, on: On, label?: string): Promise<boolean> {
++  const tag = label ?? '组件';
++  try {
++    const comp: Component = await driver.findComponent(on);
++    if (comp === null || comp === undefined) {
++      dbg(`clickIfExists[${tag}]: null`);
++      return false;
++    }
++    await comp.click();
++    dbg(`clickIfExists[${tag}]: 成功`);
++    return true;
++  } catch (e) {
++    dbg(`clickIfExists[${tag}]: 异常 ${(e as Error).message}`);
++    return false;
++  }
++}
++
++/** 轮询点击组件（等待异步渲染出现） */
++export async function waitAndClick(
++  driver: Driver, on: On, label?: string, retries: number = 4, intervalMs: number = 800,
++): Promise<boolean> {
++  const tag = label ?? '组件';
++  for (let i = 0; i < retries; i++) {
++    if (await clickIfExists(driver, on, `${tag}(第${i + 1}次)`)) {
++      return true;
++    }
++    if (i < retries - 1) {
++      await sleep(intervalMs);
++    }
++  }
++  dbg(`waitAndClick[${tag}]: ${retries} 次后仍未找到`);
++  return false;
++}
++
++/** 轮询等待组件出现（返回边界），不点击 */
++export async function waitForComponent(
++  driver: Driver, on: On, label?: string, retries: number = 4, intervalMs: number = 600,
++): Promise<Bounds | null> {
++  const tag = label ?? '组件';
++  for (let i = 0; i < retries; i++) {
++    const b = await getBounds(driver, on, `${tag}(第${i + 1}次)`);
++    if (b !== null) {
++      return b;
++    }
++    if (i < retries - 1) {
++      await sleep(intervalMs);
++    }
++  }
++  dbg(`waitForComponent[${tag}]: ${retries} 次后仍未出现`);
++  return null;
++}
++
++// ============================ 几何 ============================
++
++/** 判断两个 Bounds 是否重叠 */
++export function rectsOverlap(a: Bounds, b: Bounds): boolean {
++  return !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
++}
++
++// ============================ re-export ============================
++export { Driver, ON, On, UiDirection, WindowMode, PointerMatrix, Point };
+diff --git a/products/phone/src/ohosTest/ets/test/FloatTopBar.test.ets b/products/phone/src/ohosTest/ets/test/FloatTopBar.test.ets
+new file mode 100644
+index 0000000..d878f26
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/FloatTopBar.test.ets
+@@ -0,0 +1,69 @@
++import { describe, beforeAll, afterAll, it, expect, Level } from '@ohos/hypium';
++import {
++  Driver,
++  ON,
++  startAbility,
++  enterFloatWindow,
++  exitFloatWindow,
++  getBounds,
++  getWindowViewBounds,
++  clickWindowCenter,
++  getBundleName,
++  setCaseTag,
++  dbg,
++  err,
++} from './FloatTestHelper';
++
++/**
++ * FLOAT_01 进入悬浮窗后首页顶部 Search 可操作、不与悬浮窗控制区重叠（pass_to_pass）
++ */
++export default function floatTopBarTest() {
++  describe('FloatTopBar', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        setCaseTag('FLOAT_01');
++        driver = Driver.create();
++        await startAbility(driver, getBundleName(), 'PhoneAbility');
++        await enterFloatWindow(driver);
++        await clickWindowCenter(driver);
++      } catch (e) {
++        err('FloatTopBar beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        setCaseTag('FLOAT_01');
++        await exitFloatWindow(driver);
++      } catch (e) {
++        err('FloatTopBar afterAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_home_search_operable_in_float_window', Level.LEVEL1, async (done: Function) => {
++      try {
++        const search = await getBounds(driver, ON.type('Search'), '首页 Search');
++        dbg(`FLOAT_01: search=${search ? JSON.stringify(search) : 'null'}`);
++        expect(search !== null).assertTrue();
++        if (search === null) {
++          done();
++          return;
++        }
++
++        // Search 整体落在悬浮窗内（窗口 top 以上即控制区，search.top >= win.top 即不与之重叠）
++        const win = await getWindowViewBounds(driver);
++        dbg(`FLOAT_01: win=${win ? JSON.stringify(win) : 'null'}`);
++        if (win !== null) {
++          expect(search.top >= win.top && search.bottom <= win.bottom &&
++            search.left >= win.left && search.right <= win.right).assertTrue();
++        }
++      } catch (e) {
++        err('FLOAT_01 test error: ' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    });
++  });
++}
+diff --git a/products/phone/src/ohosTest/ets/test/FloatVideoLandscape.test.ets b/products/phone/src/ohosTest/ets/test/FloatVideoLandscape.test.ets
+new file mode 100644
+index 0000000..8460ed9
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/FloatVideoLandscape.test.ets
+@@ -0,0 +1,116 @@
++import { describe, beforeAll, afterAll, it, expect, Level } from '@ohos/hypium';
++import {
++  Driver,
++  ON,
++  UiDirection,
++  startAbility,
++  enterFloatWindow,
++  exitFloatWindow,
++  getUiWindow,
++  getWindowViewBounds,
++  getBundleName,
++  setCaseTag,
++  dbg,
++  err,
++  clickIfExists,
++  waitAndClick,
++  waitForComponent,
++  Bounds,
++  Fid,
++} from './FloatTestHelper';
++
++/**
++ * FLOAT_03 第二个（横屏）视频进悬浮窗：视频宽高比 > 1，悬浮窗横屏（pass_to_pass）
++ */
++export default function floatVideoLandscapeTest() {
++  describe('FloatVideoLandscape', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        setCaseTag('FLOAT_03');
++        driver = Driver.create();
++        await startAbility(driver, getBundleName(), 'PhoneAbility');
++        await driver.delayMs(600);
++        await clickIfExists(driver, ON.text('视频'), '视频tab');
++        await driver.delayMs(1000);
++        await flingNextVideo(driver);
++        await waitAndClick(driver, ON.text('全屏播放'), '第2个视频全屏播放', 4, 500);
++        await waitForComponent(driver, ON.id(Fid.LANDSCAPE_XCOMPONENT), '横屏页视频画面', 4, 500);
++        await enterFloatWindow(driver);
++        await driver.delayMs(1000);
++      } catch (e) {
++        err('FloatVideoLandscape beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        setCaseTag('FLOAT_03');
++        await exitFloatWindow(driver);
++        await driver.pressBack();
++      } catch (e) {
++        err('FloatVideoLandscape afterAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_landscape_video_float_in_landscape_window', Level.LEVEL1, async (done: Function) => {
++      try {
++        const video = await waitForComponent(driver, ON.id(Fid.LANDSCAPE_XCOMPONENT), '视频画面', 4, 500);
++        dbg(`FLOAT_03: video=${video ? JSON.stringify(video) : 'null'}`);
++        if (video === null) {
++          expect(false).assertTrue();
++          done();
++          return;
++        }
++        const vw = video.right - video.left;
++        const vh = video.bottom - video.top;
++        dbg(`FLOAT_03: 视频画面 ${vw}x${vh} ratio=${vw / vh}`);
++        expect(vw / vh > 1).assertTrue();
++
++        const win = await getWindowViewBounds(driver);
++        dbg(`FLOAT_03: win=${win ? JSON.stringify(win) : 'null'}`);
++        if (win === null) {
++          expect(false).assertTrue();
++          done();
++          return;
++        }
++        dbg(`FLOAT_03: 悬浮窗 ${win.right - win.left}x${win.bottom - win.top} ratio=${(win.right - win.left) / (win.bottom - win.top)}`);
++        expect((win.right - win.left) / (win.bottom - win.top) > 1).assertTrue();
++      } catch (e) {
++        err('FLOAT_03 test error: ' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    });
++  });
++}
++
++/** 上滑切换到下一个视频（垂直 Swiper） */
++async function flingNextVideo(driver: Driver): Promise<void> {
++  const win = await getUiWindow(driver);
++  if (win === null) {
++    try {
++      await driver.fling(UiDirection.UP, 600);
++    } catch (e) {
++      dbg(`flingNextVideo: fling 失败: ${(e as Error).message}`);
++    }
++    return;
++  }
++  try {
++    const b = await win.getBounds() as Bounds;
++    const cx = Math.floor((b.left + b.right) / 2);
++    const h = b.bottom - b.top;
++    const startY = Math.floor(b.top + h * 0.85);
++    const endY = Math.floor(b.top + h * 0.15);
++    dbg(`flingNextVideo: swipe (${cx},${startY})→(${cx},${endY})`);
++    await driver.swipe(cx, startY, cx, endY, 3000);
++  } catch (e) {
++    dbg(`flingNextVideo: swipe 失败: ${(e as Error).message}`);
++    try {
++      await driver.fling(UiDirection.UP, 600);
++    } catch (e2) {
++      dbg(`flingNextVideo: fling 失败: ${(e2 as Error).message}`);
++    }
++  }
++}
+diff --git a/products/phone/src/ohosTest/ets/test/FloatVideoPortrait.test.ets b/products/phone/src/ohosTest/ets/test/FloatVideoPortrait.test.ets
+new file mode 100644
+index 0000000..383f1f0
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/FloatVideoPortrait.test.ets
+@@ -0,0 +1,83 @@
++import { describe, beforeAll, afterAll, it, expect, Level } from '@ohos/hypium';
++import {
++  Driver,
++  ON,
++  startAbility,
++  enterFloatWindow,
++  exitFloatWindow,
++  getWindowViewBounds,
++  getBundleName,
++  setCaseTag,
++  dbg,
++  err,
++  clickIfExists,
++  waitAndClick,
++  waitForComponent,
++  Fid,
++} from './FloatTestHelper';
++
++/**
++ * FLOAT_02 第一个（竖屏）视频进悬浮窗：视频宽高比 < 1，悬浮窗竖屏（pass_to_pass）
++ */
++export default function floatVideoPortraitTest() {
++  describe('FloatVideoPortrait', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        setCaseTag('FLOAT_02');
++        driver = Driver.create();
++        await startAbility(driver, getBundleName(), 'PhoneAbility');
++        await driver.delayMs(600);
++        await clickIfExists(driver, ON.text('视频'), '视频tab');
++        await driver.delayMs(1500);
++        await waitAndClick(driver, ON.text('全屏播放'), '第1个视频全屏播放', 4, 500);
++        await waitForComponent(driver, ON.id(Fid.LANDSCAPE_XCOMPONENT), '横屏页视频画面', 4, 500);
++        await enterFloatWindow(driver);
++        await driver.delayMs(1000);
++      } catch (e) {
++        err('FloatVideoPortrait beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        setCaseTag('FLOAT_02');
++        await exitFloatWindow(driver);
++        await driver.pressBack();
++      } catch (e) {
++        err('FloatVideoPortrait afterAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_portrait_video_float_in_portrait_window', Level.LEVEL1, async (done: Function) => {
++      try {
++        const video = await waitForComponent(driver, ON.id(Fid.LANDSCAPE_XCOMPONENT), '视频画面', 4, 500);
++        dbg(`FLOAT_02: video=${video ? JSON.stringify(video) : 'null'}`);
++        if (video === null) {
++          expect(false).assertTrue();
++          done();
++          return;
++        }
++        const vw = video.right - video.left;
++        const vh = video.bottom - video.top;
++        dbg(`FLOAT_02: 视频画面 ${vw}x${vh} ratio=${vw / vh}`);
++        expect(vw / vh < 1).assertTrue();
++
++        const win = await getWindowViewBounds(driver);
++        dbg(`FLOAT_02: win=${win ? JSON.stringify(win) : 'null'}`);
++        if (win === null) {
++          expect(false).assertTrue();
++          done();
++          return;
++        }
++        dbg(`FLOAT_02: 悬浮窗 ${win.right - win.left}x${win.bottom - win.top} ratio=${(win.right - win.left) / (win.bottom - win.top)}`);
++        expect((win.right - win.left) / (win.bottom - win.top) < 1).assertTrue();
++      } catch (e) {
++        err('FLOAT_02 test error: ' + JSON.stringify(e));
++        expect(false).assertTrue();
++      }
++      done();
++    });
++  });
++}
+diff --git a/products/phone/src/ohosTest/ets/test/List.test.ets b/products/phone/src/ohosTest/ets/test/List.test.ets
+index 4fa4dd4..dc757d2 100644
+--- a/products/phone/src/ohosTest/ets/test/List.test.ets
++++ b/products/phone/src/ohosTest/ets/test/List.test.ets
+@@ -1,2 +1,9 @@
++import floatTopBarTest from './FloatTopBar.test';
++import floatVideoPortraitTest from './FloatVideoPortrait.test';
++import floatVideoLandscapeTest from './FloatVideoLandscape.test';
++
+ export default function testsuite() {
+-}
+\ No newline at end of file
++  floatTopBarTest();
++  floatVideoPortraitTest();
++  floatVideoLandscapeTest();
++}

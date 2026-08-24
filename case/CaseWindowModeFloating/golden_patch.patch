@@ -1,0 +1,47 @@
+diff --git a/components/module_swipeplayer/src/main/ets/viewmodel/LandscapeVideoVM.ets b/components/module_swipeplayer/src/main/ets/viewmodel/LandscapeVideoVM.ets
+index ca0289a..da9d847 100644
+--- a/components/module_swipeplayer/src/main/ets/viewmodel/LandscapeVideoVM.ets
++++ b/components/module_swipeplayer/src/main/ets/viewmodel/LandscapeVideoVM.ets
+@@ -131,6 +131,10 @@ export class LandscapeVideoVM {
+     this.videoWidth = param.videoWidth as number
+     this.videoHeight = param.videoHeight as number
+     this.videoTitle = param.videoTitle as string
++    // 仅横屏视频（宽>高）才启用横屏多窗（悬浮窗横屏）；竖屏视频不启用，悬浮窗保持竖屏
++    if (this.videoWidth > this.videoHeight) {
++      this.enableLandscapeMultiWindow();
++    }
+     this.breakpointModel = param.breakpointModel as BreakpointModel
+     this.isMute = param.isMute as boolean
+     this.isHideSlide = param.isHideSlide as boolean
+@@ -187,6 +191,8 @@ export class LandscapeVideoVM {
+       // 清空本地引用（不影响共享的 avPlayerController 实例）
+       this.avPlayerController = undefined;
+       this.player = undefined;
++      // 关闭悬浮窗横屏
++      this.disableLandscapeMultiWindow()
+       // 清理定时器
+       if (this.time) {
+         clearTimeout(this.time);
+@@ -408,4 +414,21 @@ export class LandscapeVideoVM {
+     }
+     this.progressController.sliderOnChange(this.panEndTime, SliderChangeMode.End);
+   }
++
++  enableLandscapeMultiWindow(): void {
++    try {
++      this.windowClass?.enableLandscapeMultiWindow().catch((error:BusinessError) => {
++        Logger.error(TAG, `enableLandscapeMultiWindow err, code: ${error.code}, mesage: ${error.message}`);
++      });
++    } catch (err) {
++      let error = err as BusinessError;
++      Logger.error(TAG, `aboutToAppear err, code: ${error.code}, mesage: ${error.message}`);
++    }
++  }
++
++  disableLandscapeMultiWindow(): void {
++    this.windowClass?.disableLandscapeMultiWindow().catch((error:BusinessError) => {
++      Logger.error(TAG, `disableLandscapeMultiWindow err, code: ${error.code}, mesage: ${error.message}`);
++    });
++  }
+ }
+\ No newline at end of file

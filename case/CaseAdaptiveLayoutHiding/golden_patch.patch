@@ -1,0 +1,168 @@
+diff --git a/entry/src/main/ets/common/VisibilityWeight.ets b/entry/src/main/ets/common/VisibilityWeight.ets
+new file mode 100644
+index 0000000..0088f05
+--- /dev/null
++++ b/entry/src/main/ets/common/VisibilityWeight.ets
+@@ -0,0 +1,5 @@
++export const VISIBILITY_WEIGHT_CRITICAL: number = 5;
++export const VISIBILITY_WEIGHT_HIGH: number = 4;
++export const VISIBILITY_WEIGHT_MEDIUM: number = 3;
++export const VISIBILITY_WEIGHT_LOW: number = 2;
++export const VISIBILITY_WEIGHT_BASE: number = 1;
+diff --git a/entry/src/main/ets/components/FlightInfoRow.ets b/entry/src/main/ets/components/FlightInfoRow.ets
+index 088765f..5f6d3bc 100644
+--- a/entry/src/main/ets/components/FlightInfoRow.ets
++++ b/entry/src/main/ets/components/FlightInfoRow.ets
+@@ -18,6 +18,12 @@ import {
+   SPACE_SM,
+   SPACE_XL
+ } from '../common/StyleConstants';
++import {
++  VISIBILITY_WEIGHT_CRITICAL,
++  VISIBILITY_WEIGHT_HIGH,
++  VISIBILITY_WEIGHT_LOW,
++  VISIBILITY_WEIGHT_MEDIUM
++} from '../common/VisibilityWeight';
+ import { FLIGHT_SCENE, FlightExtra } from '../model/FlightData';
+ 
+ @ComponentV2
+@@ -40,6 +46,7 @@ export struct FlightInfoRow {
+       .backgroundColor(COLOR_COMPONENT_BACKGROUND_SECONDARY)
+       .alignItems(VerticalAlign.Center)
+       .flexShrink(0)
++      .displayPriority(VISIBILITY_WEIGHT_CRITICAL)
+ 
+       Text(FLIGHT_SCENE.onTimeLabel)
+         .id('flight-ontime')
+@@ -52,6 +59,7 @@ export struct FlightInfoRow {
+         .borderRadius(RADIUS_CHIP)
+         .backgroundColor(COLOR_COMPONENT_BACKGROUND_SECONDARY)
+         .flexShrink(0)
++        .displayPriority(VISIBILITY_WEIGHT_HIGH)
+ 
+       Text(FLIGHT_SCENE.seatLabel)
+         .id('flight-seat')
+@@ -64,6 +72,7 @@ export struct FlightInfoRow {
+         .borderRadius(RADIUS_CHIP)
+         .backgroundColor(COLOR_COMPONENT_BACKGROUND_SECONDARY)
+         .flexShrink(0)
++        .displayPriority(VISIBILITY_WEIGHT_MEDIUM)
+ 
+       Row({ space: SPACE_SM }) {
+         ForEach(FLIGHT_SCENE.extras, (extra: FlightExtra) => {
+@@ -87,6 +96,7 @@ export struct FlightInfoRow {
+       .borderRadius(RADIUS_GROUP)
+       .backgroundColor(COLOR_COMPONENT_BACKGROUND_TERTIARY)
+       .flexShrink(0)
++      .displayPriority(VISIBILITY_WEIGHT_LOW)
+ 
+       Text(FLIGHT_SCENE.shareLabel)
+         .id('flight-share')
+@@ -99,6 +109,7 @@ export struct FlightInfoRow {
+         .borderRadius(RADIUS_CHIP)
+         .backgroundColor(COLOR_COMPONENT_BACKGROUND_SECONDARY)
+         .flexShrink(0)
++        .displayPriority(VISIBILITY_WEIGHT_MEDIUM)
+     }
+     .id(FLIGHT_SCENE.infoRowId)
+     .width(FULL_SIZE)
+diff --git a/entry/src/main/ets/components/MeetingToolBar.ets b/entry/src/main/ets/components/MeetingToolBar.ets
+index 3c9e659..92f7eca 100644
+--- a/entry/src/main/ets/components/MeetingToolBar.ets
++++ b/entry/src/main/ets/components/MeetingToolBar.ets
+@@ -10,6 +10,13 @@ import {
+   RADIUS_CHIP,
+   SPACE_LG
+ } from '../common/StyleConstants';
++import {
++  VISIBILITY_WEIGHT_BASE,
++  VISIBILITY_WEIGHT_CRITICAL,
++  VISIBILITY_WEIGHT_HIGH,
++  VISIBILITY_WEIGHT_LOW,
++  VISIBILITY_WEIGHT_MEDIUM
++} from '../common/VisibilityWeight';
+ import { MeetingControl, MeetingControlTone } from '../model/MeetingData';
+ 
+ function backgroundForTone(tone: MeetingControlTone): ResourceColor {
+@@ -32,6 +39,23 @@ function foregroundForTone(tone: MeetingControlTone): ResourceColor {
+   return COLOR_FONT_PRIMARY;
+ }
+ 
++const MEETING_GROUP_WEIGHT: Record<string, number> = {
++  'share-screen': VISIBILITY_WEIGHT_CRITICAL,
++  'members': VISIBILITY_WEIGHT_CRITICAL,
++  'camera': VISIBILITY_WEIGHT_HIGH,
++  'chat': VISIBILITY_WEIGHT_HIGH,
++  'mute': VISIBILITY_WEIGHT_MEDIUM,
++  'record': VISIBILITY_WEIGHT_MEDIUM,
++  'hand': VISIBILITY_WEIGHT_LOW,
++  'board': VISIBILITY_WEIGHT_LOW,
++  'subtitle': VISIBILITY_WEIGHT_BASE,
++  'poll': VISIBILITY_WEIGHT_BASE,
++  'reaction': VISIBILITY_WEIGHT_BASE,
++  'layout': VISIBILITY_WEIGHT_BASE,
++  'invite': VISIBILITY_WEIGHT_BASE,
++  'settings': VISIBILITY_WEIGHT_BASE
++};
++
+ @ComponentV2
+ export struct MeetingToolBar {
+   @Require @Param controls: MeetingControl[];
+@@ -56,6 +80,7 @@ export struct MeetingToolBar {
+       .borderRadius(RADIUS_CHIP)
+       .backgroundColor(backgroundForTone(item.tone))
+       .flexShrink(0)
++      .displayPriority(MEETING_GROUP_WEIGHT[item.id] ?? VISIBILITY_WEIGHT_BASE)
+   }
+ 
+   build() {
+diff --git a/entry/src/main/ets/components/TripProgressTrack.ets b/entry/src/main/ets/components/TripProgressTrack.ets
+index 0fe7a41..707f50c 100644
+--- a/entry/src/main/ets/components/TripProgressTrack.ets
++++ b/entry/src/main/ets/components/TripProgressTrack.ets
+@@ -11,6 +11,9 @@ import {
+   RADIUS_CHIP,
+   SPACE_LG
+ } from '../common/StyleConstants';
++import {
++  VISIBILITY_WEIGHT_BASE
++} from '../common/VisibilityWeight';
+ import { TripNode, TripNodeTone } from '../model/TripData';
+ 
+ function backgroundForTone(tone: TripNodeTone): ResourceColor {
+@@ -33,6 +36,19 @@ function foregroundForTone(tone: TripNodeTone): ResourceColor {
+   return COLOR_FONT_PRIMARY;
+ }
+ 
++const TRIP_KEEP_ORDER: string[] = [
++  'gate', 'boarding', 'security', 'destination',
++  'cabin', 'baggage', 'checkin', 'parking', 'shop', 'lounge', 'pickup'
++];
++
++function visibilityWeightForNode(nodeId: string): number {
++  const index = TRIP_KEEP_ORDER.indexOf(nodeId);
++  if (index < 0) {
++    return VISIBILITY_WEIGHT_BASE;
++  }
++  return TRIP_KEEP_ORDER.length - index;
++}
++
+ @ComponentV2
+ export struct TripProgressTrack {
+   @Require @Param nodes: TripNode[];
+@@ -61,6 +77,7 @@ export struct TripProgressTrack {
+       .borderRadius(RADIUS_CHIP)
+       .backgroundColor(backgroundForTone(item.tone))
+       .flexShrink(0)
++      .displayPriority(visibilityWeightForNode(item.id))
+   }
+ 
+   build() {
+@@ -74,6 +91,7 @@ export struct TripProgressTrack {
+             .fontSize(FONT_SIZE_CAPTION)
+             .fontColor(COLOR_FONT_TERTIARY)
+             .flexShrink(0)
++            .displayPriority(Math.min(visibilityWeightForNode(item.id), visibilityWeightForNode(this.nodes[index + 1].id)))
+         }
+       }, (item: TripNode) => item.id)
+     }

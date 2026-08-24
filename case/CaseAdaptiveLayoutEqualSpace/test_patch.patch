@@ -1,0 +1,513 @@
+diff --git a/entry/src/ohosTest/ets/test/CaseTestUtils.ets b/entry/src/ohosTest/ets/test/CaseTestUtils.ets
+new file mode 100644
+index 0000000..4872bed
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/CaseTestUtils.ets
+@@ -0,0 +1,267 @@
++import { Driver, ON, Component } from '@kit.TestKit';
++import AbilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++import { expect } from '@ohos/hypium';
++import { hilog } from '@kit.PerformanceAnalysisKit';
++
++const LOG_DOMAIN: number = 0x0000;
++const LOG_TAG: string = 'CaseEqualSpaceTest';
++const APP_BUNDLE_NAME: string = 'com.example.case3';
++const APP_ENTRY_ABILITY: string = 'EntryAbility';
++const GAP_TOLERANCE_VP: number = 2;
++const SIZE_TOLERANCE_VP: number = 1;
++const WAIT_ATTEMPTS: number = 30;
++const HOME_PAGE_ID: string = 'scenario-home-page';
++const HOME_ACTION_ID: string = 'home-diamond-button';
++const SCENARIO_PAGE_IDS: string[] = ['case-page-diamond', 'section-sidebar', 'case-page-remote'];
++
++export interface BoundsRect {
++  left: number;
++  top: number;
++  right: number;
++  bottom: number;
++}
++
++function formatError(error: Object | string | undefined): string {
++  if (error instanceof Error) {
++    return `${error.name}: ${error.message}`;
++  }
++  return String(error);
++}
++
++export function failTest(error: Object | undefined): void {
++  hilog.error(LOG_DOMAIN, LOG_TAG, 'ohosTest failed: %{public}s', formatError(error));
++  expect(false).assertTrue();
++}
++
++export function widthOf(b: BoundsRect): number {
++  return b.right - b.left;
++}
++
++export function heightOf(b: BoundsRect): number {
++  return b.bottom - b.top;
++}
++
++export function pxPerVp(): number {
++  try {
++    const d = display.getDefaultDisplaySync();
++    if (d.densityPixels > 0) {
++      return d.densityPixels;
++    }
++  } catch (error) {
++    hilog.warn(LOG_DOMAIN, LOG_TAG, 'density unavailable: %{public}s', formatError(error));
++  }
++  return 3;
++}
++
++export async function findComponentById(driver: Driver, id: string): Promise<Component | null> {
++  try {
++    return await driver.findComponent(ON.id(id));
++  } catch (error) {
++    return null;
++  }
++}
++
++export async function waitForComponent(driver: Driver, id: string, attempts: number = WAIT_ATTEMPTS): Promise<Component> {
++  try {
++    for (let i = 0; i < attempts; i++) {
++      const c = await findComponentById(driver, id);
++      if (c !== null) {
++        return c;
++      }
++      await driver.waitForIdle(300, 1000);
++    }
++    await driver.assertComponentExist(ON.id(id));
++    return await driver.findComponent(ON.id(id));
++  } catch (error) {
++    hilog.error(LOG_DOMAIN, LOG_TAG, 'wait component %{public}s: %{public}s', id, formatError(error));
++    throw new Error(formatError(error));
++  }
++}
++
++export async function launchApp(driver: Driver): Promise<void> {
++  const maxAttempts: number = 3;
++  let lastError: Error = new Error('launch app failed');
++  for (let attempt = 0; attempt < maxAttempts; attempt++) {
++    try {
++      const delegator = AbilityDelegatorRegistry.getAbilityDelegator();
++      const want: Want = { bundleName: APP_BUNDLE_NAME, abilityName: APP_ENTRY_ABILITY };
++      await delegator.startAbility(want);
++      await driver.waitForIdle(1000, 3000);
++      if (await findCurrentScenarioPageId(driver) !== null ||
++        await findComponentById(driver, HOME_PAGE_ID) === null) {
++        await returnHome(driver);
++      }
++      await waitForComponent(driver, HOME_PAGE_ID);
++      return;
++    } catch (error) {
++      lastError = new Error(formatError(error));
++      hilog.warn(LOG_DOMAIN, LOG_TAG, 'launch app attempt %{public}d failed: %{public}s', attempt + 1, lastError.message);
++      try {
++        await driver.waitForIdle(500, 1500);
++      } catch (waitError) {
++        hilog.warn(LOG_DOMAIN, LOG_TAG, 'launch retry wait failed: %{public}s', formatError(waitError));
++      }
++    }
++  }
++  hilog.error(LOG_DOMAIN, LOG_TAG, 'launch app failed after %{public}d attempts: %{public}s', maxAttempts, lastError.message);
++  throw lastError;
++}
++
++async function openScenario(driver: Driver, buttonId: string, pageId: string): Promise<void> {
++  try {
++    const btn = await waitForComponent(driver, buttonId);
++    await btn.click();
++    await waitForComponent(driver, pageId);
++    await driver.waitForIdle(500, 2000);
++  } catch (error) {
++    hilog.error(LOG_DOMAIN, LOG_TAG, 'open scenario %{public}s: %{public}s', buttonId, formatError(error));
++    throw new Error(formatError(error));
++  }
++}
++
++export async function openDiamondScenario(driver: Driver): Promise<void> {
++  await openScenario(driver, 'home-diamond-button', 'case-page-diamond');
++}
++
++export async function openSidebarScenario(driver: Driver): Promise<void> {
++  await openScenario(driver, 'home-sidebar-button', 'section-sidebar');
++}
++
++export async function openRemoteScenario(driver: Driver): Promise<void> {
++  await openScenario(driver, 'home-remote-button', 'case-page-remote');
++}
++
++async function findCurrentScenarioPageId(driver: Driver): Promise<string | null> {
++  for (const scenarioPageId of SCENARIO_PAGE_IDS) {
++    if (await findComponentById(driver, scenarioPageId) !== null) {
++      return scenarioPageId;
++    }
++  }
++  return null;
++}
++
++async function waitForScenarioPageExit(driver: Driver): Promise<void> {
++  try {
++    for (let attempt = 0; attempt < WAIT_ATTEMPTS; attempt++) {
++      if (await findCurrentScenarioPageId(driver) === null) {
++        return;
++      }
++      await driver.waitForIdle(300, 1000);
++    }
++    const scenarioPageId = await findCurrentScenarioPageId(driver);
++    if (scenarioPageId !== null) {
++      throw new Error(`scenario page remains visible after back: ${scenarioPageId}`);
++    }
++  } catch (error) {
++    throw new Error(formatError(error));
++  }
++}
++
++export async function returnHome(driver: Driver): Promise<void> {
++  try {
++    const scenarioPageId = await findCurrentScenarioPageId(driver);
++    if (scenarioPageId !== null) {
++      await driver.pressBack();
++      await waitForScenarioPageExit(driver);
++    }
++    await waitForComponent(driver, HOME_PAGE_ID);
++    const homeAction = await waitForComponent(driver, HOME_ACTION_ID);
++    if (!await homeAction.isEnabled() || !await homeAction.isClickable()) {
++      throw new Error('home page is not interactive');
++    }
++    await driver.waitForIdle(500, 2000);
++  } catch (error) {
++    const message = formatError(error);
++    hilog.error(LOG_DOMAIN, LOG_TAG, 'return home: %{public}s', message);
++    throw new Error(message);
++  }
++}
++
++export async function getBounds(driver: Driver, id: string): Promise<BoundsRect> {
++  try {
++    const c = await waitForComponent(driver, id);
++    const b = await c.getBounds() as BoundsRect;
++    expect(widthOf(b) > 0).assertTrue();
++    expect(heightOf(b) > 0).assertTrue();
++    return b;
++  } catch (error) {
++    hilog.error(LOG_DOMAIN, LOG_TAG, 'get bounds %{public}s: %{public}s', id, formatError(error));
++    throw new Error(formatError(error));
++  }
++}
++
++export async function getItemBounds(driver: Driver, ids: string[]): Promise<BoundsRect[]> {
++  const result: BoundsRect[] = [];
++  for (const id of ids) {
++    result.push(await getBounds(driver, id));
++  }
++  return result;
++}
++
++export function expectInside(container: BoundsRect, items: BoundsRect[]): void {
++  const tol = pxPerVp();
++  for (const it of items) {
++    expect(it.left >= container.left - tol).assertTrue();
++    expect(it.right <= container.right + tol).assertTrue();
++    expect(it.top >= container.top - tol).assertTrue();
++    expect(it.bottom <= container.bottom + tol).assertTrue();
++  }
++}
++
++export function expectNoOverlap(items: BoundsRect[], horizontal: boolean): void {
++  for (let i = 1; i < items.length; i++) {
++    if (horizontal) {
++      expect(items[i].left >= items[i - 1].right).assertTrue();
++    } else {
++      expect(items[i].top >= items[i - 1].bottom).assertTrue();
++    }
++  }
++}
++
++export function expectSizesConsistent(items: BoundsRect[], horizontal: boolean): void {
++  const tol = SIZE_TOLERANCE_VP * pxPerVp();
++  const sizes = horizontal ? items.map(widthOf) : items.map(heightOf);
++  let min = sizes[0];
++  let max = sizes[0];
++  for (const s of sizes) {
++    if (s < min) {
++      min = s;
++    }
++    if (s > max) {
++      max = s;
++    }
++  }
++  expect(max - min <= tol).assertTrue();
++}
++
++export function expectGapsEqual(container: BoundsRect, items: BoundsRect[], horizontal: boolean): void {
++  const gaps: number[] = [];
++  if (horizontal) {
++    gaps.push(items[0].left - container.left);
++    for (let i = 1; i < items.length; i++) {
++      gaps.push(items[i].left - items[i - 1].right);
++    }
++    gaps.push(container.right - items[items.length - 1].right);
++  } else {
++    gaps.push(items[0].top - container.top);
++    for (let i = 1; i < items.length; i++) {
++      gaps.push(items[i].top - items[i - 1].bottom);
++    }
++    gaps.push(container.bottom - items[items.length - 1].bottom);
++  }
++  const tol = GAP_TOLERANCE_VP * pxPerVp();
++  let min = gaps[0];
++  let max = gaps[0];
++  for (const g of gaps) {
++    if (g < min) {
++      min = g;
++    }
++    if (g > max) {
++      max = g;
++    }
++  }
++  hilog.info(LOG_DOMAIN, LOG_TAG, 'gaps min=%{public}f max=%{public}f tol=%{public}f', min, max, tol);
++  expect(max - min <= tol).assertTrue();
++}
+diff --git a/entry/src/ohosTest/ets/test/DiamondAreaEqualSpace.test.ets b/entry/src/ohosTest/ets/test/DiamondAreaEqualSpace.test.ets
+new file mode 100644
+index 0000000..3a75aac
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/DiamondAreaEqualSpace.test.ets
+@@ -0,0 +1,63 @@
++import { Driver } from '@kit.TestKit';
++import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
++import {
++  expectGapsEqual,
++  expectInside,
++  expectNoOverlap,
++  expectSizesConsistent,
++  failTest,
++  getBounds,
++  getItemBounds,
++  launchApp,
++  openDiamondScenario,
++  returnHome
++} from './CaseTestUtils';
++
++const DIAMOND_IDS: string[] = ['entry-order', 'entry-favorite', 'entry-coupon', 'entry-history'];
++
++export default function diamondAreaEqualSpaceTest() {
++  describe('DiamondAreaEqualSpaceTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = await Driver.create();
++        await launchApp(driver);
++        await openDiamondScenario(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await returnHome(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_diamond_area_base_integrity', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-diamond');
++        const items = await getItemBounds(driver, DIAMOND_IDS);
++        expectInside(container, items);
++        expectNoOverlap(items, true);
++        expectSizesConsistent(items, true);
++        expect(true).assertTrue();
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_diamond_area_gaps_equal', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-diamond');
++        const items = await getItemBounds(driver, DIAMOND_IDS);
++        expectGapsEqual(container, items, true);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/List.test.ets b/entry/src/ohosTest/ets/test/List.test.ets
+new file mode 100644
+index 0000000..7389ee4
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/List.test.ets
+@@ -0,0 +1,9 @@
++import diamondAreaEqualSpaceTest from './DiamondAreaEqualSpace.test';
++import sidebarMenuEqualSpaceTest from './SidebarMenuEqualSpace.test';
++import remoteControlEqualSpaceTest from './RemoteControlEqualSpace.test';
++
++export default function testsuite() {
++  diamondAreaEqualSpaceTest();
++  sidebarMenuEqualSpaceTest();
++  remoteControlEqualSpaceTest();
++}
+diff --git a/entry/src/ohosTest/ets/test/RemoteControlEqualSpace.test.ets b/entry/src/ohosTest/ets/test/RemoteControlEqualSpace.test.ets
+new file mode 100644
+index 0000000..caee0d8
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/RemoteControlEqualSpace.test.ets
+@@ -0,0 +1,63 @@
++import { Driver } from '@kit.TestKit';
++import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
++import {
++  expectGapsEqual,
++  expectInside,
++  expectNoOverlap,
++  expectSizesConsistent,
++  failTest,
++  getBounds,
++  getItemBounds,
++  launchApp,
++  openRemoteScenario,
++  returnHome
++} from './CaseTestUtils';
++
++const REMOTE_IDS: string[] = ['remote-power', 'remote-menu', 'remote-back', 'remote-volume', 'remote-channel'];
++
++export default function remoteControlEqualSpaceTest() {
++  describe('RemoteControlEqualSpaceTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = await Driver.create();
++        await launchApp(driver);
++        await openRemoteScenario(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await returnHome(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_remote_control_base_integrity', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-remote');
++        const items = await getItemBounds(driver, REMOTE_IDS);
++        expectInside(container, items);
++        expectNoOverlap(items, true);
++        expectSizesConsistent(items, true);
++        expect(true).assertTrue();
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_remote_control_gaps_equal', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-remote');
++        const items = await getItemBounds(driver, REMOTE_IDS);
++        expectGapsEqual(container, items, true);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/SidebarMenuEqualSpace.test.ets b/entry/src/ohosTest/ets/test/SidebarMenuEqualSpace.test.ets
+new file mode 100644
+index 0000000..2c5f273
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/SidebarMenuEqualSpace.test.ets
+@@ -0,0 +1,63 @@
++import { Driver } from '@kit.TestKit';
++import { describe, beforeAll, afterAll, it, expect } from '@ohos/hypium';
++import {
++  expectGapsEqual,
++  expectInside,
++  expectNoOverlap,
++  expectSizesConsistent,
++  failTest,
++  getBounds,
++  getItemBounds,
++  launchApp,
++  openSidebarScenario,
++  returnHome
++} from './CaseTestUtils';
++
++const SIDEBAR_IDS: string[] = ['menu-home', 'menu-message', 'menu-schedule', 'menu-setting'];
++
++export default function sidebarMenuEqualSpaceTest() {
++  describe('SidebarMenuEqualSpaceTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = await Driver.create();
++        await launchApp(driver);
++        await openSidebarScenario(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await returnHome(driver);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_sidebar_menu_base_integrity', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-sidebar');
++        const items = await getItemBounds(driver, SIDEBAR_IDS);
++        expectInside(container, items);
++        expectNoOverlap(items, false);
++        expectSizesConsistent(items, false);
++        expect(true).assertTrue();
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_sidebar_menu_gaps_equal', 0, async () => {
++      try {
++        const container = await getBounds(driver, 'section-sidebar');
++        const items = await getItemBounds(driver, SIDEBAR_IDS);
++        expectGapsEqual(container, items, false);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/module.json5 b/entry/src/ohosTest/module.json5
+new file mode 100644
+index 0000000..1647b75
+--- /dev/null
++++ b/entry/src/ohosTest/module.json5
+@@ -0,0 +1,12 @@
++{
++  "module": {
++    "name": "entry_test",
++    "type": "feature",
++    "deviceTypes": [
++      "phone",
++      "tablet"
++    ],
++    "deliveryWithInstall": true,
++    "installationFree": false
++  }
++}

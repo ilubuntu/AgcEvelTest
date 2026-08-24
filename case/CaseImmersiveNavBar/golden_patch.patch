@@ -1,0 +1,42 @@
+diff --git a/commons/commons/src/main/ets/utils/WindowUtil.ets b/commons/commons/src/main/ets/utils/WindowUtil.ets
+index 0d87d8a..3734674 100644
+--- a/commons/commons/src/main/ets/utils/WindowUtil.ets
++++ b/commons/commons/src/main/ets/utils/WindowUtil.ets
+@@ -61,6 +61,16 @@ export class WindowUtil {
+       this.mainWindow.on('windowSizeChange', this.onWindowSizeChange);
+ 
+       this.mainWindowInfo.titleButtonRect = this.mainWindow.getTitleButtonRect();
++
++      const navIndicatorArea =
++        this.mainWindow.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
++      AppStorage.setOrCreate('avoidBottom', navIndicatorArea.bottomRect.height + 'px');
++
++      this.mainWindow.on('avoidAreaChange', (opts: window.AvoidAreaOptions) => {
++        if (opts.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
++          AppStorage.setOrCreate('avoidBottom', opts.area.bottomRect.height + 'px');
++        }
++      });
+     } catch (error) {
+       let err = error as BusinessError;
+       hilog.error(0x0000, `TestLog`, `Failed to update window info. Code: ${err.code}, message: ${err.message}`);
+diff --git a/products/default/src/main/ets/pages/backgroundImmersive/componentBackgroundImmersive/Shopping.ets b/products/default/src/main/ets/pages/backgroundImmersive/componentBackgroundImmersive/Shopping.ets
+index 5215fe2..eebb0fe 100644
+--- a/products/default/src/main/ets/pages/backgroundImmersive/componentBackgroundImmersive/Shopping.ets
++++ b/products/default/src/main/ets/pages/backgroundImmersive/componentBackgroundImmersive/Shopping.ets
+@@ -17,12 +17,16 @@ import { Home } from 'shopping';
+ 
+ @Component
+ export struct Shopping {
++  @StorageProp('avoidBottom') avoidBottom: string = '0px';
+   build() {
+     NavDestination() {
+       Column() {
+         Home()
+       }
+       .backgroundColor($r('app.color.page_background'))
++      .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
++      .height(LayoutPolicy.matchParent)
++      .padding({ bottom: this.avoidBottom })
+       .id('ShoppingColumn')
+     }
+     .hideTitleBar(true)

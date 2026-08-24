@@ -1,0 +1,45 @@
+{
+  "case_id": "cover-immersiver-from-base-nav-bar",
+  "mode": "from_base",
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "base",
+  "fail_to_pass": [
+    "should_content_area_not_overlap_nav_bar"
+  ],
+  "pass_to_pass": [
+    "should_content_main_home_is_exist"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "immersiveCommonPassToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveCommonPassToPass.test.ets"
+      },
+      {
+        "suite": "immersiveNavBarFailToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveNavBarFailToPass.test.ets"
+      }
+    ],
+    "foldable": [
+      {
+        "suite": "immersiveCommonPassToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveCommonPassToPass.test.ets"
+      },
+      {
+        "suite": "immersiveNavBarFailToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveNavBarFailToPass.test.ets"
+      }
+    ],
+    "tablet": [
+      {
+        "suite": "immersiveCommonPassToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveCommonPassToPass.test.ets"
+      },
+      {
+        "suite": "immersiveNavBarFailToPassTest",
+        "file": "products/default/src/ohosTest/ets/test/ImmersiveNavBarFailToPass.test.ets"
+      }
+    ]
+  }
+}

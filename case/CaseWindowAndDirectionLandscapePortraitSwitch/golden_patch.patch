@@ -1,0 +1,81 @@
+diff --git a/components/recorded_player/src/main/ets/pages/PlayerComponent.ets b/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
+index 18fa20a..33e6ebb 100644
+--- a/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
++++ b/components/recorded_player/src/main/ets/pages/PlayerComponent.ets
+@@ -131,7 +131,45 @@ export struct PlayerComponent {
+     }
+   }
+ 
++  setInitialWindowDirection() {
++    try {
++      this.windowObj = (this.getUIContext().getHostContext() as common.UIAbilityContext).windowStage.getMainWindowSync()
++    } catch (err) {
++      hilog.error(0x0000, TAG, 'get main window error：: %{public}s', JSON.stringify(err));
++    }
++
++    this.windowObj?.setPreferredOrientation(WindowOrientationHelper.select({
++      mode: 'autoRotate',
++      range: 'ALL_ORIENTATIONS',
++      preferred: 'UNSPECIFIED'
++    }))
++      .then(() => {
++        this.syncOrientationState()
++      })
++      .catch((err: BusinessError) => {
++        hilog.error(0x0000, TAG, 'set preferred orientation error：: %{public}s', JSON.stringify(err));
++      });
++  }
++
++  syncOrientationState() {
++    try {
++      let rect = this.windowObj?.getWindowProperties().windowRect;
++      if (rect) {
++        let wVp = this.getUIContext().px2vp(rect.width);
++        let hVp = this.getUIContext().px2vp(rect.height);
++        if (wVp > hVp) {
++          this.isLayoutFullScreen = true;
++          this.setFullScreen(true);
++        }
++      }
++    } catch (err) {
++      hilog.error(0x0000, TAG, 'sync orientation state error：: %{public}s', JSON.stringify(err));
++    }
++  }
++
+   async aboutToAppear() {
++    this.setInitialWindowDirection();
++    this.windowObj?.on('windowSizeChange', this.onWindowSizeChange);
+     if (this.movieItems && this.movieItems.length > 0) {
+       this.playerVM.movieItemList = this.movieItems
+       this.playerVM.movieItem = this.playerVM.movieItemList[this.playerIndex]
+@@ -232,7 +270,18 @@ export struct PlayerComponent {
+     this.setComponentHeight()
+   }
+ 
++  onWindowSizeChange = (size: window.Size) => {
++    let wVp = this.getUIContext().px2vp(size.width);
++    let hVp = this.getUIContext().px2vp(size.height);
++    let shouldBeFullScreen = wVp > hVp;
++    if (this.isLayoutFullScreen !== shouldBeFullScreen) {
++      this.isLayoutFullScreen = shouldBeFullScreen;
++      this.setFullScreen(shouldBeFullScreen);
++    }
++  }
++
+   aboutToDisappear() {
++    this.windowObj?.off('windowSizeChange', this.onWindowSizeChange);
+     this.isLayoutFullScreen = false
+     this.setR(this.isLayoutFullScreen ? 2 : 1)
+     this.setFullScreen(this.isLayoutFullScreen)
+diff --git a/products/phone/src/main/module.json5 b/products/phone/src/main/module.json5
+index 0e7b472..d97add0 100644
+--- a/products/phone/src/main/module.json5
++++ b/products/phone/src/main/module.json5
+@@ -26,6 +26,7 @@
+           "fullscreen",
+           "floating"
+         ],
++        "orientation": "follow_desktop",
+         "exported": true,
+         "skills": [
+           {

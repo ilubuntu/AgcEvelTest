@@ -1,0 +1,36 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "diamond_panel_background",
+      "value": "#EEF4FF"
+    },
+    {
+      "name": "diamond_entry_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "sidebar_panel_background",
+      "value": "#EDEEF1"
+    },
+    {
+      "name": "sidebar_avatar_background",
+      "value": "#EEF4FF"
+    },
+    {
+      "name": "remote_panel_background",
+      "value": "#1F2937"
+    },
+    {
+      "name": "remote_key_background",
+      "value": "#374151"
+    },
+    {
+      "name": "tv_screen_background",
+      "value": "#111827"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+diff --git a/entry/src/main/ets/views/MainMenuPage.ets b/entry/src/main/ets/views/MainMenuPage.ets
+index aa7cd42..2611070 100644
+--- a/entry/src/main/ets/views/MainMenuPage.ets
++++ b/entry/src/main/ets/views/MainMenuPage.ets
+@@ -71,12 +71,11 @@ function buildMainMenuEqualArea() {
+           .textOverflow({ overflow: TextOverflow.Ellipsis })
+           .fontColor($r('app.color.font_color_level1'))
+       }
+-      .width(75)
++      .layoutWeight(1)
+       .id(MAIN_MENU_IDS_EQUAL[index])
+     }, (item: MainMenuItem) => item.label)
+   }
+   .width('100%')
+-  .justifyContent(FlexAlign.Center)
+   .backgroundColor($r('app.color.background_color_primary'))
+   .borderRadius(16)
+   .padding(12)
+diff --git a/entry/src/main/ets/views/MyOrderPage.ets b/entry/src/main/ets/views/MyOrderPage.ets
+index 6c13241..4ce511c 100644
+--- a/entry/src/main/ets/views/MyOrderPage.ets
++++ b/entry/src/main/ets/views/MyOrderPage.ets
+@@ -74,13 +74,12 @@ function buildOrderEqualArea() {
+             .fontColor($r('app.color.font_color_level1'))
+         }
+         .alignItems(HorizontalAlign.Center)
+-        .width(60)
++        .layoutWeight(1)
+         .id(ORDER_TAB_IDS_EQUAL[index])
+       }, (item: OrderTabItem) => item.label)
+     }
+     .width('100%')
+     .alignItems(VerticalAlign.Center)
+-    .justifyContent(FlexAlign.Center)
+   }
+   .width('100%')
+   .backgroundColor($r('app.color.background_color_primary'))

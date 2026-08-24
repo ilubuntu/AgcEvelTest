@@ -1,0 +1,28 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "theme_color",
+      "value": "#e64566"
+    },
+    {
+      "name": "font_color_level1",
+      "value": "#e6000000"
+    },
+    {
+      "name": "font_color_level2",
+      "value": "#99000000"
+    },
+    {
+      "name": "background_color_primary",
+      "value": "#ffffff"
+    },
+    {
+      "name": "background_color_grey",
+      "value": "#f1f3f5"
+    }
+  ]
+}

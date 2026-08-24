@@ -1,0 +1,42 @@
+{
+  "case_id": "window_and_direction-landscape-portrait-switch-derive-base",
+  "mode": "derive_base",
+  "source_base_commit": null,
+  "source_answer_commit": "dca5b796aa4979ec519583052292bae9225bee26",
+  "removal_commits": [
+    "4afc70f3f09a0f8a24cdc3c9878e7cb968aeb4d7"
+  ],
+  "golden_commits": [],
+  "test_commits": [
+    "85d16baabf439961940720c09b482dd4837427ee"
+  ],
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "base",
+  "fail_to_pass": [
+    "should_MD_LG_device_follow_desktop_enables_rotation",
+    "should_SM_device_follow_desktop_stays_portrait",
+    "should_auto_rotate_when_window_landscape_on_SM_MD_devices",
+    "should_landscape_on_LG_devices"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "SmFailToPassTest",
+        "file": "products/phone/src/ohosTest/ets/test/SmFailToPass.test.ets"
+      }
+    ],
+    "foldable": [
+      {
+        "suite": "MdFailToPassTest",
+        "file": "products/phone/src/ohosTest/ets/test/MdFailToPass.test.ets"
+      }
+    ],
+    "tablet": [
+      {
+        "suite": "LgFailToPassTest",
+        "file": "products/phone/src/ohosTest/ets/test/LgFailToPass.test.ets"
+      }
+    ]
+  }
+}

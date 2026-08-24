@@ -1,0 +1,19 @@
+{
+  "routerMap": [
+    {
+      "name": "DiamondAreaScenario",
+      "pageSourceFile": "src/main/ets/pages/DiamondAreaScenarioPage.ets",
+      "buildFunction": "diamondAreaScenarioPageBuilder"
+    },
+    {
+      "name": "SidebarMenuScenario",
+      "pageSourceFile": "src/main/ets/pages/SidebarMenuScenarioPage.ets",
+      "buildFunction": "sidebarMenuScenarioPageBuilder"
+    },
+    {
+      "name": "RemoteControlScenario",
+      "pageSourceFile": "src/main/ets/pages/RemoteControlScenarioPage.ets",
+      "buildFunction": "remoteControlScenarioPageBuilder"
+    }
+  ]
+}

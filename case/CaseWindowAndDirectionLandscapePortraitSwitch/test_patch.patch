@@ -1,0 +1,310 @@
+diff --git a/products/phone/src/ohosTest/ets/test/LgFailToPass.test.ets b/products/phone/src/ohosTest/ets/test/LgFailToPass.test.ets
+new file mode 100644
+index 0000000..7ed5e48
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/LgFailToPass.test.ets
+@@ -0,0 +1,59 @@
++import { hilog } from '@kit.PerformanceAnalysisKit';
++import { beforeAll, describe, expect, it } from '@ohos/hypium';
++import { window } from '@kit.ArkUI';
++import { common } from '@kit.AbilityKit';
++import { Driver, ON } from '@kit.TestKit';
++import { TestHelper } from './TestHelper';
++
++const helper = new TestHelper();
++
++export default function lgFailToPassTest() {
++  describe('LgFailToPassTest', () => {
++    let driver = Driver.create();
++    let windowClass: window.Window | null = null;
++
++    beforeAll(async () => {
++      await TestHelper.prepareAbility(driver);
++
++      try {
++        let context = getContext() as common.UIAbilityContext;
++
++        windowClass = await window.getLastWindow(context);
++
++        await driver.setDisplayRotationEnabled(true);
++      } catch (err) {
++        hilog.error(0x0000, 'testTag', 'beforeAll error: %{public}s', JSON.stringify(err));
++      }
++    });
++
++    it('should_MD_LG_device_follow_desktop_enables_rotation', 0, (done: Function) => {
++      let orientation = windowClass!.getPreferredOrientation();
++      expect(orientation).assertEqual(window.Orientation.FOLLOW_DESKTOP);
++      done();
++    });
++
++    it('should_landscape_on_LG_devices', 0, async (done: Function) => {
++      const screenH = helper.getScreenHeightPx();
++
++      const screenW = helper.getScreenWidthPx();
++
++      const swiper = await driver.waitForComponent(ON.id('video_swiper'), 5000);
++
++      await swiper.click();
++
++      await driver.delayMs(1000);
++
++      const xComponent = await driver.waitForComponent(ON.id('XComponent01'), 5000);
++
++      const afterXComponentBound = await xComponent.getBounds();
++
++      const isRightWelt = afterXComponentBound.right === screenW;
++
++      const isBottomWelt = afterXComponentBound.bottom === screenH;
++
++      expect(isRightWelt && isBottomWelt).assertTrue();
++
++      done();
++    });
++  });
++}
+\ No newline at end of file
+diff --git a/products/phone/src/ohosTest/ets/test/List.test.ets b/products/phone/src/ohosTest/ets/test/List.test.ets
+index 794c7dc..f1b2071 100644
+--- a/products/phone/src/ohosTest/ets/test/List.test.ets
++++ b/products/phone/src/ohosTest/ets/test/List.test.ets
+@@ -1,5 +1,11 @@
+ import abilityTest from './Ability.test';
++import lgFailToPassTest from './LgFailToPass.test';
++import mdFailToPassTest from './MdFailToPass.test';
++import smFailToPassTest from './SmFailToPass.test';
+ 
+ export default function testsuite() {
+   abilityTest();
++  lgFailToPassTest();
++  mdFailToPassTest();
++  smFailToPassTest();
+ }
+\ No newline at end of file
+diff --git a/products/phone/src/ohosTest/ets/test/MdFailToPass.test.ets b/products/phone/src/ohosTest/ets/test/MdFailToPass.test.ets
+new file mode 100644
+index 0000000..ae6687d
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/MdFailToPass.test.ets
+@@ -0,0 +1,60 @@
++import { beforeAll, describe, expect, it } from '@ohos/hypium';
++import { DisplayRotation, Driver, ON } from '@kit.TestKit';
++import { TestHelper } from './TestHelper';
++import { common } from '@kit.AbilityKit';
++import { window } from '@kit.ArkUI';
++import { hilog } from '@kit.PerformanceAnalysisKit';
++
++const helper = new TestHelper();
++
++export default function mdFailToPassTest() {
++  describe('MdFailToPassTest', () => {
++    let windowClass: window.Window | null = null;
++    let driver = Driver.create();
++
++    beforeAll(async () => {
++      await TestHelper.prepareAbility(driver);
++
++      try {
++        let context = getContext() as common.UIAbilityContext;
++
++        windowClass = await window.getLastWindow(context);
++
++        await driver.setDisplayRotationEnabled(true);
++      } catch (err) {
++        hilog.error(0x0000, 'testTag', 'beforeAll error: %{public}s', JSON.stringify(err));
++      }
++    });
++
++    it('should_MD_LG_device_follow_desktop_enables_rotation', 0, (done: Function) => {
++      let orientation = windowClass!.getPreferredOrientation();
++      expect(orientation).assertEqual(window.Orientation.FOLLOW_DESKTOP);
++      done();
++    });
++
++    it('should_auto_rotate_when_window_landscape_on_SM_MD_devices', 0, async (done: Function) => {
++      const swiper = await driver.waitForComponent(ON.id('video_swiper'), 5000);
++
++      const screenH = helper.getScreenHeightPx();
++
++      await swiper.click();
++
++      await driver.delayMs(1000);
++
++      // 竖屏时
++      await driver.setDisplayRotation(DisplayRotation.ROTATION_90);
++
++      await driver.delayMs(1000);
++
++      const xComponent = await driver.waitForComponent(ON.id('XComponent01'), 5000);
++
++      const afterXComponentBound = await xComponent.getBounds();
++
++      const rightBound = afterXComponentBound.right;
++
++      expect(rightBound).assertEqual(screenH);
++
++      done();
++    });
++  });
++}
+diff --git a/products/phone/src/ohosTest/ets/test/SmFailToPass.test.ets b/products/phone/src/ohosTest/ets/test/SmFailToPass.test.ets
+new file mode 100644
+index 0000000..d81d0f0
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/SmFailToPass.test.ets
+@@ -0,0 +1,60 @@
++import { hilog } from '@kit.PerformanceAnalysisKit';
++import { beforeAll, describe, expect, it } from '@ohos/hypium';
++import { window } from '@kit.ArkUI';
++import { common, Want } from '@kit.AbilityKit';
++import { abilityDelegatorRegistry, DisplayRotation, Driver, ON } from '@kit.TestKit';
++import { TestHelper } from './TestHelper';
++
++const helper = new TestHelper();
++
++export default function smFailToPassTest() {
++  describe('SmFailToPassTest', () => {
++    let driver = Driver.create();
++    let windowClass: window.Window | null = null;
++
++    beforeAll(async () => {
++      await TestHelper.prepareAbility(driver);
++
++      try {
++        let context = getContext() as common.UIAbilityContext;
++
++        windowClass = await window.getLastWindow(context);
++
++        await driver.setDisplayRotationEnabled(true);
++      } catch (err) {
++        hilog.error(0x0000, 'testTag', 'beforeAll error: %{public}s', JSON.stringify(err));
++      }
++    });
++
++    it('should_SM_device_follow_desktop_stays_portrait', 0, (done: Function) => {
++      let orientation = windowClass!.getPreferredOrientation();
++      expect(orientation).assertEqual(window.Orientation.FOLLOW_DESKTOP);
++      done();
++    });
++
++    it('should_auto_rotate_when_window_landscape_on_SM_MD_devices', 0, async (done: Function) => {
++      const swiper = await driver.waitForComponent(ON.id('video_swiper'), 5000);
++
++      const screenH = helper.getScreenHeightPx();
++
++      await swiper.click();
++
++      await driver.delayMs(1000);
++
++      // 竖屏时
++      await driver.setDisplayRotation(DisplayRotation.ROTATION_90);
++
++      await driver.delayMs(1000);
++
++      const xComponent = await driver.waitForComponent(ON.id('XComponent01'), 5000);
++
++      const afterXComponentBound = await xComponent.getBounds();
++
++      const rightBound = afterXComponentBound.right;
++
++      expect(rightBound).assertEqual(screenH);
++
++      done();
++    });
++  });
++}
+diff --git a/products/phone/src/ohosTest/ets/test/TestHelper.ets b/products/phone/src/ohosTest/ets/test/TestHelper.ets
+new file mode 100644
+index 0000000..b8ce1ed
+--- /dev/null
++++ b/products/phone/src/ohosTest/ets/test/TestHelper.ets
+@@ -0,0 +1,89 @@
++import { display, window } from '@kit.ArkUI';
++import { abilityDelegatorRegistry, Driver } from '@kit.TestKit';
++import { common, Want } from '@kit.AbilityKit';
++
++export class TestHelper {
++  private static readonly instance: TestHelper = new TestHelper();
++
++  static async prepareAbility(driver: Driver) {
++    const bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++    const want: Want = {
++      bundleName: bundleName,
++      abilityName: 'PhoneAbility',
++    };
++    const delegator: abilityDelegatorRegistry.AbilityDelegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++    await delegator.startAbility(want);
++    await driver.waitForIdle(4000, 5000);
++  }
++
++  static getInstance(): TestHelper {
++    return TestHelper.instance;
++  }
++
++  getDisplayInfo(): display.Display {
++    return display.getDefaultDisplaySync();
++  }
++
++  getScreenWidthPx(): number {
++    let displayInfo: display.Display = this.getDisplayInfo();
++    return displayInfo.width;
++  }
++
++  getScreenHeightPx(): number {
++    let displayInfo: display.Display = this.getDisplayInfo();
++    return displayInfo.height;
++  }
++
++  getScreenDensity(): number {
++    let displayInfo: display.Display = this.getDisplayInfo();
++    return displayInfo.densityPixels;
++  }
++
++  px2vp(px: number): number {
++    let density: number = this.getScreenDensity();
++    if (density <= 0) {
++      return 0;
++    }
++    return px / density;
++  }
++
++  vp2px(vp: number): number {
++    let density: number = this.getScreenDensity();
++    return vp * density;
++  }
++
++  getScreenWidthVp(): number {
++    let widthPx: number = this.getScreenWidthPx();
++    return this.px2vp(widthPx);
++  }
++
++  getScreenHeightVp(): number {
++    let heightPx: number = this.getScreenHeightPx();
++    return this.px2vp(heightPx);
++  }
++
++  isSmallBreakpoint(vpThreshold?: number): boolean {
++    let widthVp: number = this.getScreenWidthVp();
++    let threshold: number = vpThreshold ?? 600;
++    return widthVp < threshold;
++  }
++
++  isMediumBreakpoint(vpThreshold?: number): boolean {
++    let widthVp: number = this.getScreenWidthVp();
++    let threshold: number = vpThreshold ?? 840;
++    return widthVp < threshold;
++  }
++
++  getBreakpoint(): string {
++    let widthVp: number = this.getScreenWidthVp();
++    if (widthVp < 600) {
++      return 'sm';
++    } else if (widthVp < 840) {
++      return 'md';
++    } else if (widthVp < 1440) {
++      return 'lg';
++    }
++    return 'xl';
++  }
++}

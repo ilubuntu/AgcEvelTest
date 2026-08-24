@@ -1,0 +1,35 @@
+{
+  "case_id": "case-adaptive-layout-hiding",
+  "mode": "from_base",
+  "source_base_commit": "d001e5f71ce998b6e3b048239548dd2a357c6548",
+  "source_answer_commit": null,
+  "removal_commits": [],
+  "golden_commits": [
+    "69798614182dee61206cb40c93345b7e0a8172df"
+  ],
+  "test_commits": [
+    "7a1aa431204fda497b5e9a8547e89e7468f3a9ae",
+    "b1a6e12e51319da7e9b985e56184c6964238e0e8",
+    "1294ded9eddff8a867130f1e69b9fdff3502bae3",
+    "7400d8c1e21821ace2d9f3ec563b48de59debd68",
+    "e4adaee955fb5098eb46ad4dcf3a4fa9edcf4ba8",
+    "310149545a10d5ac5f7b11c7644c4b02a8cd59b3",
+    "87d1d91c8c81803d0a834f0eff2b20ad50f5f6da"
+  ],
+  "generated_base_commit": "d001e5f71ce998b6e3b048239548dd2a357c6548",
+  "generated_answer_commit": "a9b3d31016d7bb2b346c1c2cddc2698db9de1613",
+  "generated_test_commit": "4661e953d82acb0f101b8eb9ee5ce7b929fd3be0",
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "task",
+  "fail_to_pass": [
+    "should_keep_flight_info_on_current_device",
+    "should_keep_meeting_controls_on_current_device",
+    "should_keep_trip_nodes_on_current_device"
+  ],
+  "pass_to_pass": [
+    "should_keep_flight_info_layout_stable_on_current_device",
+    "should_keep_meeting_controls_layout_stable_on_current_device",
+    "should_keep_trip_nodes_layout_stable_on_current_device"
+  ]
+}

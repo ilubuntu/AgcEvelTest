@@ -1,0 +1,31 @@
+{
+  "paths": {
+    "hvigorw": "/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw",
+    "ohpm": "/Applications/DevEco-Studio.app/Contents/tools/ohpm/bin/ohpm",
+    "hdc": "/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/toolchains/hdc",
+    "emulatorBin": "/Applications/DevEco-Studio.app/Contents/tools/emulator/Emulator",
+    "emulatorDeployedDir": "/Users/bb/.Huawei/Emulator/deployed",
+    "foldServerScript": "src/fold/assets/fold-server.py"
+  },
+  "devices": [
+    {
+      "id": "phone",
+      "profile": "Mate 80 Pro",
+      "target": "127.0.0.1:5555",
+      "startEmulator": false
+    },
+    {
+      "id": "foldable",
+      "profile": "Mate X7",
+      "target": "127.0.0.1:5557",
+      "startEmulator": false
+    },
+    {
+      "id": "tablet",
+      "profile": "OneMulti_2in1_1787191476",
+      "target": "127.0.0.1:15003",
+      "hdcPort": 15003,
+      "startEmulator": true
+    }
+  ]
+}

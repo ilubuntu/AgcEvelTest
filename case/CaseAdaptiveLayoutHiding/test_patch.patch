@@ -1,0 +1,733 @@
+diff --git a/entry/src/ohosTest/ets/test/FlightHiddenCapability.test.ets b/entry/src/ohosTest/ets/test/FlightHiddenCapability.test.ets
+new file mode 100644
+index 0000000..0977f3d
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/FlightHiddenCapability.test.ets
+@@ -0,0 +1,84 @@
++import { describe, beforeAll, afterAll, it } from '@ohos/hypium';
++import { Driver } from '@kit.TestKit';
++import {
++  launchApp,
++  enterScenario,
++  ScenarioExpectation,
++  verifyCurrentDevice,
++  verifyCurrentDeviceStableLayout,
++  failTest
++} from './HiddenCapabilityTestUtils';
++
++const FLIGHT_LAYOUT_ITEM_IDS: string[] = [
++  'flight-gate-info',
++  'flight-ontime',
++  'flight-seat',
++  'flight-extras',
++  'flight-share'
++];
++
++const flightScenario: ScenarioExpectation = {
++  homeButtonId: 'home-flight-button',
++  pageId: 'flight-page',
++  containerId: 'flight-info-row',
++  layoutItemIds: FLIGHT_LAYOUT_ITEM_IDS,
++  alwaysVisible: ['flight-flight-number', 'flight-status', 'flight-departure-time', 'flight-route'],
++  stages: [
++    {
++      stage: 'phone',
++      visible: ['flight-gate-info', 'flight-ontime'],
++      hidden: ['flight-seat', 'flight-extras', 'flight-share']
++    },
++    {
++      stage: 'foldable',
++      visible: ['flight-gate-info', 'flight-ontime', 'flight-seat', 'flight-share'],
++      hidden: ['flight-extras']
++    },
++    {
++      stage: 'tablet',
++      visible: ['flight-gate-info', 'flight-ontime', 'flight-seat', 'flight-share'],
++      hidden: ['flight-extras']
++    }
++  ]
++};
++
++export default function flightHiddenCapabilityTest() {
++  describe('FlightScenario', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        await launchApp(driver);
++        await enterScenario(driver, flightScenario.homeButtonId, flightScenario.pageId);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(600, 3000);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_flight_info_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDevice(driver, flightScenario);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_flight_info_layout_stable_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDeviceStableLayout(driver, flightScenario);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/HiddenCapabilityTestUtils.ets b/entry/src/ohosTest/ets/test/HiddenCapabilityTestUtils.ets
+new file mode 100644
+index 0000000..15791e9
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/HiddenCapabilityTestUtils.ets
+@@ -0,0 +1,361 @@
++import { Driver, ON, Component } from '@kit.TestKit';
++import display from '@ohos.display';
++import AbilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import { expect } from '@ohos/hypium';
++import { logError } from '../../../main/ets/common/Logger';
++
++const APP_BUNDLE_NAME: string = 'com.example.case1';
++const APP_ENTRY_ABILITY: string = 'EntryAbility';
++const EMPTY_BOUNDS: BoundsRect = {
++  left: 0,
++  top: 0,
++  right: 0,
++  bottom: 0
++};
++
++const PHONE_VP_THRESHOLD: number = 600;
++const FOLDABLE_VP_THRESHOLD: number = 840;
++
++export type DeviceStage = 'phone' | 'foldable' | 'tablet';
++
++export interface BoundsRect {
++  left: number;
++  top: number;
++  right: number;
++  bottom: number;
++}
++
++export interface DeviceExpectation {
++  stage: DeviceStage;
++  visible: string[];
++  hidden: string[];
++}
++
++export interface ScenarioExpectation {
++  homeButtonId: string;
++  pageId: string;
++  containerId: string;
++  stages: DeviceExpectation[];
++  alwaysVisible?: string[];
++  layoutItemIds?: string[];
++}
++
++interface VisibleLayoutItem {
++  itemId: string;
++  bounds: BoundsRect;
++}
++
++function report(msg: string): void {
++  console.info(`[HiddenCapabilityTest] ${msg}`);
++}
++
++function boundsText(b: BoundsRect): string {
++  return `(${b.left},${b.top},${b.right},${b.bottom}) w=${b.right - b.left} h=${b.bottom - b.top}`;
++}
++
++export function failTest(error: Object | undefined): void {
++  logError('ohosTest failed', error);
++  expect(false).assertTrue();
++}
++
++export async function findComponentById(driver: Driver, id: string): Promise<Component | null> {
++  try {
++    return await driver.findComponent(ON.id(id));
++  } catch (error) {
++    return null;
++  }
++}
++
++export function widthOf(bounds: BoundsRect): number {
++  return bounds.right - bounds.left;
++}
++
++export function heightOf(bounds: BoundsRect): number {
++  return bounds.bottom - bounds.top;
++}
++
++export function intersects(a: BoundsRect, b: BoundsRect): boolean {
++  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
++}
++
++export function isInside(inner: BoundsRect, outer: BoundsRect): boolean {
++  return inner.left >= outer.left &&
++    inner.right <= outer.right &&
++    inner.top >= outer.top &&
++    inner.bottom <= outer.bottom;
++}
++
++export function detectDeviceStage(): DeviceStage {
++  try {
++    const disp = display.getDefaultDisplaySync();
++    const widthVp = px2vp(disp.width);
++    const heightVp = px2vp(disp.height);
++    const shortSide = Math.min(widthVp, heightVp);
++    report(`display: ${disp.width}x${disp.height}px => ${widthVp}x${heightVp}vp, shortSide=${shortSide}vp`);
++    if (shortSide < PHONE_VP_THRESHOLD) {
++      return 'phone';
++    }
++    if (shortSide < FOLDABLE_VP_THRESHOLD) {
++      return 'foldable';
++    }
++    return 'tablet';
++  } catch (e) {
++    logError(`Fail to detect device stage. Cause: `, e);
++    return 'phone';
++  }
++}
++
++async function waitForComponent(driver: Driver, id: string, attempts: number = 30): Promise<Component> {
++  try {
++    for (let i = 0; i < attempts; i++) {
++      const comp = await findComponentById(driver, id);
++      if (comp !== null) {
++        return comp;
++      }
++      await driver.waitForIdle(500, 1000);
++    }
++    await driver.assertComponentExist(ON.id(id));
++    return await driver.findComponent(ON.id(id));
++  } catch (e) {
++    logError(`Fail to get component. Cause: `, e);
++    throw new Error(e);
++  }
++}
++
++export async function launchApp(driver: Driver): Promise<void> {
++  try {
++    const delegator = AbilityDelegatorRegistry.getAbilityDelegator();
++    const want: Want = {
++      bundleName: APP_BUNDLE_NAME,
++      abilityName: APP_ENTRY_ABILITY
++    };
++    await delegator.startAbility(want);
++    await waitForComponent(driver, 'scenario-home-page');
++  } catch (error) {
++    failTest(error);
++  }
++}
++
++export async function enterScenario(driver: Driver, homeButtonId: string, pageId: string): Promise<void> {
++  try {
++    const button = await waitForComponent(driver, homeButtonId);
++    await (button as Component).click();
++    await driver.waitForIdle(600, 2000);
++    await waitForComponent(driver, pageId);
++  } catch (error) {
++    failTest(error);
++  }
++}
++
++export async function expectPresentAndVisible(driver: Driver, itemId: string): Promise<void> {
++  try {
++    const item = await findComponentById(driver, itemId);
++    if (item === null) {
++      report(`alwaysVisible FAIL: ${itemId} not found`);
++    }
++    expect(item !== null).assertTrue();
++    const bounds = await (item as Component).getBounds() as BoundsRect;
++    report(`alwaysVisible: ${itemId} bounds=${boundsText(bounds)}`);
++    expect(widthOf(bounds) > 0).assertTrue();
++    expect(heightOf(bounds) > 0).assertTrue();
++  } catch (error) {
++    failTest(error);
++  }
++}
++
++export async function expectVisibleInContainer(driver: Driver, itemId: string, containerId: string): Promise<BoundsRect> {
++  try {
++    const item = await findComponentById(driver, itemId);
++    if (item === null) {
++      report(`visible FAIL: ${itemId} not found`);
++    }
++    expect(item !== null).assertTrue();
++    const container = await findComponentById(driver, containerId);
++    if (container === null) {
++      report(`visible FAIL: container ${containerId} not found`);
++    }
++    expect(container !== null).assertTrue();
++
++    const itemBounds = await (item as Component).getBounds() as BoundsRect;
++    const containerBounds = await (container as Component).getBounds() as BoundsRect;
++    report(`visible: ${itemId} bounds=${boundsText(itemBounds)}, container=${containerId} bounds=${boundsText(containerBounds)}`);
++
++    expect(widthOf(itemBounds) > 0).assertTrue();
++    expect(heightOf(itemBounds) > 0).assertTrue();
++    if (!isInside(itemBounds, containerBounds)) {
++      report(`visible FAIL: ${itemId} outside container ${containerId}`);
++    }
++    expect(isInside(itemBounds, containerBounds)).assertTrue();
++
++    return itemBounds;
++  } catch (error) {
++    failTest(error);
++    return EMPTY_BOUNDS;
++  }
++}
++
++export async function expectHiddenOrZeroSize(driver: Driver, itemId: string): Promise<void> {
++  try {
++    const item = await findComponentById(driver, itemId);
++    if (item === null) {
++      report(`hidden: ${itemId} not found (OK)`);
++      expect(true).assertTrue();
++      return;
++    }
++
++    const bounds = await item.getBounds() as BoundsRect;
++    const w = widthOf(bounds);
++    const h = heightOf(bounds);
++    report(`hidden: ${itemId} exists bounds=${boundsText(bounds)}`);
++    if (w > 0 && h > 0) {
++      report(`hidden FAIL: ${itemId} still visible w=${w} h=${h}`);
++    }
++    expect(w === 0 || h === 0).assertTrue();
++  } catch (error) {
++    failTest(error);
++  }
++}
++
++export async function expectNoOverlap(boundsList: BoundsRect[]): Promise<void> {
++  for (let i = 0; i < boundsList.length; i++) {
++    for (let j = i + 1; j < boundsList.length; j++) {
++      if (intersects(boundsList[i], boundsList[j])) {
++        report(`overlap: item[${i}] bounds=${boundsText(boundsList[i])} intersects item[${j}] bounds=${boundsText(boundsList[j])}`);
++      }
++      expect(intersects(boundsList[i], boundsList[j])).assertFalse();
++    }
++  }
++}
++
++export async function expectSingleLine(boundsList: BoundsRect[]): Promise<void> {
++  if (boundsList.length <= 1) {
++    return;
++  }
++  let minTop = boundsList[0].top;
++  let maxTop = boundsList[0].top;
++  for (const bounds of boundsList) {
++    if (bounds.top < minTop) {
++      minTop = bounds.top;
++    }
++    if (bounds.top > maxTop) {
++      maxTop = bounds.top;
++    }
++  }
++  if (maxTop - minTop > 8) {
++    report(`singleLine FAIL: topDelta=${maxTop - minTop} minTop=${minTop} maxTop=${maxTop}`);
++  }
++  expect(maxTop - minTop <= 8).assertTrue();
++}
++
++export async function expectLeftToRightOrder(itemIds: string[], boundsList: BoundsRect[]): Promise<void> {
++  if (boundsList.length <= 1) {
++    return;
++  }
++  for (let i = 1; i < boundsList.length; i++) {
++    const previous = boundsList[i - 1];
++    const current = boundsList[i];
++    if (current.left <= previous.left) {
++      report(`order FAIL: ${itemIds[i - 1]} bounds=${boundsText(previous)} before ${itemIds[i]} bounds=${boundsText(current)}`);
++    }
++    expect(current.left > previous.left).assertTrue();
++  }
++}
++
++function getCurrentDeviceExpectation(scenario: ScenarioExpectation): DeviceExpectation | undefined {
++  const currentStage = detectDeviceStage();
++  report(`currentDeviceStage=${currentStage}`);
++  const expectation = scenario.stages.find(e => e.stage === currentStage);
++  if (expectation === undefined) {
++    report(`No expectation for stage=${currentStage}`);
++    failTest(`No expectation defined for device stage: ${currentStage}`);
++    return undefined;
++  }
++  report(`expectation: stage=${expectation.stage} visible=[${expectation.visible.join(',')}] hidden=[${expectation.hidden.join(',')}]`);
++  return expectation;
++}
++
++async function collectVisibleBounds(driver: Driver, scenario: ScenarioExpectation, expectation: DeviceExpectation): Promise<BoundsRect[]> {
++  const visibleBounds: BoundsRect[] = [];
++  for (const itemId of expectation.visible) {
++    visibleBounds.push(await expectVisibleInContainer(driver, itemId, scenario.containerId));
++  }
++  return visibleBounds;
++}
++
++async function collectCurrentVisibleLayoutItems(driver: Driver, scenario: ScenarioExpectation, itemIds: string[]): Promise<VisibleLayoutItem[]> {
++  const container = await findComponentById(driver, scenario.containerId);
++  if (container === null) {
++    report(`layout FAIL: container ${scenario.containerId} not found`);
++  }
++  expect(container !== null).assertTrue();
++  const containerBounds = await (container as Component).getBounds() as BoundsRect;
++  const visibleItems: VisibleLayoutItem[] = [];
++
++  for (const itemId of itemIds) {
++    const item = await findComponentById(driver, itemId);
++    if (item === null) {
++      continue;
++    }
++
++    const itemBounds = await item.getBounds() as BoundsRect;
++    if (widthOf(itemBounds) <= 0 || heightOf(itemBounds) <= 0) {
++      continue;
++    }
++    if (!isInside(itemBounds, containerBounds)) {
++      continue;
++    }
++
++    report(`layoutVisible: ${itemId} bounds=${boundsText(itemBounds)}`);
++    visibleItems.push({
++      itemId,
++      bounds: itemBounds
++    });
++  }
++
++  if (visibleItems.length === 0) {
++    report(`layout FAIL: no visible item found in container ${scenario.containerId}`);
++  }
++  expect(visibleItems.length > 0).assertTrue();
++  return visibleItems;
++}
++
++export async function verifyCurrentDevice(driver: Driver, scenario: ScenarioExpectation): Promise<void> {
++  try {
++    const expectation = getCurrentDeviceExpectation(scenario);
++    if (expectation === undefined) {
++      return;
++    }
++
++    for (const itemId of (scenario.alwaysVisible ?? [])) {
++      await expectPresentAndVisible(driver, itemId);
++    }
++
++    await collectVisibleBounds(driver, scenario, expectation);
++
++    for (const itemId of expectation.hidden) {
++      await expectHiddenOrZeroSize(driver, itemId);
++    }
++  } catch (error) {
++    failTest(error);
++  }
++}
++
++export async function verifyCurrentDeviceStableLayout(driver: Driver, scenario: ScenarioExpectation): Promise<void> {
++  try {
++    const expectation = getCurrentDeviceExpectation(scenario);
++    if (expectation === undefined) {
++      return;
++    }
++
++    const layoutItemIds = scenario.layoutItemIds ?? expectation.visible;
++    const visibleItems = await collectCurrentVisibleLayoutItems(driver, scenario, layoutItemIds);
++    const visibleIds = visibleItems.map((item: VisibleLayoutItem) => item.itemId);
++    const visibleBounds = visibleItems.map((item: VisibleLayoutItem) => item.bounds);
++    await expectNoOverlap(visibleBounds);
++    await expectSingleLine(visibleBounds);
++    await expectLeftToRightOrder(visibleIds, visibleBounds);
++  } catch (error) {
++    failTest(error);
++  }
++}
+diff --git a/entry/src/ohosTest/ets/test/List.test.ets b/entry/src/ohosTest/ets/test/List.test.ets
+new file mode 100644
+index 0000000..99274dd
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/List.test.ets
+@@ -0,0 +1,9 @@
++import meetingHiddenCapabilityTest from './MeetingHiddenCapability.test';
++import flightHiddenCapabilityTest from './FlightHiddenCapability.test';
++import tripHiddenCapabilityTest from './TripHiddenCapability.test';
++
++export default function testsuite() {
++  meetingHiddenCapabilityTest();
++  flightHiddenCapabilityTest();
++  tripHiddenCapabilityTest();
++}
+diff --git a/entry/src/ohosTest/ets/test/MeetingHiddenCapability.test.ets b/entry/src/ohosTest/ets/test/MeetingHiddenCapability.test.ets
+new file mode 100644
+index 0000000..7221cee
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/MeetingHiddenCapability.test.ets
+@@ -0,0 +1,108 @@
++import { describe, beforeAll, afterAll, it } from '@ohos/hypium';
++import { Driver } from '@kit.TestKit';
++import {
++  launchApp,
++  enterScenario,
++  ScenarioExpectation,
++  verifyCurrentDevice,
++  verifyCurrentDeviceStableLayout,
++  failTest
++} from './HiddenCapabilityTestUtils';
++
++const MEETING_LAYOUT_ITEM_IDS: string[] = [
++  'meeting-mute',
++  'meeting-camera',
++  'meeting-share-screen',
++  'meeting-members',
++  'meeting-chat',
++  'meeting-record',
++  'meeting-hand',
++  'meeting-board',
++  'meeting-subtitle',
++  'meeting-poll',
++  'meeting-reaction',
++  'meeting-layout',
++  'meeting-invite',
++  'meeting-settings',
++  'meeting-minutes',
++  'meeting-files',
++  'meeting-transcript',
++  'meeting-translation',
++  'meeting-focus',
++  'meeting-timer',
++  'meeting-live',
++  'meeting-breakout',
++  'meeting-host-tools',
++  'meeting-speaker-list',
++  'meeting-attendance',
++  'meeting-cohost',
++  'meeting-watermark',
++  'meeting-network',
++  'meeting-audio-mode',
++  'meeting-help'
++];
++
++const meetingScenario: ScenarioExpectation = {
++  homeButtonId: 'home-meeting-button',
++  pageId: 'meeting-page',
++  containerId: 'meeting-toolbar',
++  layoutItemIds: MEETING_LAYOUT_ITEM_IDS,
++  stages: [
++    {
++      stage: 'phone',
++      visible: ['meeting-camera', 'meeting-share-screen', 'meeting-members', 'meeting-chat'],
++      hidden: ['meeting-mute', 'meeting-record', 'meeting-hand', 'meeting-board', 'meeting-subtitle', 'meeting-poll', 'meeting-reaction', 'meeting-layout', 'meeting-invite', 'meeting-settings', 'meeting-minutes', 'meeting-files', 'meeting-transcript', 'meeting-translation', 'meeting-focus', 'meeting-timer', 'meeting-live', 'meeting-breakout', 'meeting-host-tools', 'meeting-speaker-list', 'meeting-attendance', 'meeting-cohost', 'meeting-watermark', 'meeting-network', 'meeting-audio-mode', 'meeting-help']
++    },
++    {
++      stage: 'foldable',
++      visible: ['meeting-mute', 'meeting-camera', 'meeting-share-screen', 'meeting-members', 'meeting-chat', 'meeting-record', 'meeting-hand', 'meeting-board'],
++      hidden: ['meeting-subtitle', 'meeting-poll', 'meeting-reaction', 'meeting-layout', 'meeting-invite', 'meeting-settings', 'meeting-minutes', 'meeting-files', 'meeting-transcript', 'meeting-translation', 'meeting-focus', 'meeting-timer', 'meeting-live', 'meeting-breakout', 'meeting-host-tools', 'meeting-speaker-list', 'meeting-attendance', 'meeting-cohost', 'meeting-watermark', 'meeting-network', 'meeting-audio-mode', 'meeting-help']
++    },
++    {
++      stage: 'tablet',
++      visible: ['meeting-mute', 'meeting-camera', 'meeting-share-screen', 'meeting-members', 'meeting-chat', 'meeting-record', 'meeting-hand', 'meeting-board'],
++      hidden: ['meeting-subtitle', 'meeting-poll', 'meeting-reaction', 'meeting-layout', 'meeting-invite', 'meeting-settings', 'meeting-minutes', 'meeting-files', 'meeting-transcript', 'meeting-translation', 'meeting-focus', 'meeting-timer', 'meeting-live', 'meeting-breakout', 'meeting-host-tools', 'meeting-speaker-list', 'meeting-attendance', 'meeting-cohost', 'meeting-watermark', 'meeting-network', 'meeting-audio-mode', 'meeting-help']
++    }
++  ]
++};
++
++export default function meetingHiddenCapabilityTest() {
++  describe('MeetingScenario', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        await launchApp(driver);
++        await enterScenario(driver, meetingScenario.homeButtonId, meetingScenario.pageId);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(600, 3000);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_meeting_controls_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDevice(driver, meetingScenario);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_meeting_controls_layout_stable_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDeviceStableLayout(driver, meetingScenario);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/TripHiddenCapability.test.ets b/entry/src/ohosTest/ets/test/TripHiddenCapability.test.ets
+new file mode 100644
+index 0000000..74197d1
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/TripHiddenCapability.test.ets
+@@ -0,0 +1,123 @@
++import { describe, beforeAll, afterAll, it } from '@ohos/hypium';
++import { Driver } from '@kit.TestKit';
++import {
++  launchApp,
++  enterScenario,
++  ScenarioExpectation,
++  verifyCurrentDevice,
++  verifyCurrentDeviceStableLayout,
++  expectHiddenOrZeroSize,
++  expectVisibleInContainer,
++  detectDeviceStage,
++  failTest
++} from './HiddenCapabilityTestUtils';
++
++const TRIP_RENDER_ORDER: string[] = [
++  'trip-security',
++  'trip-gate',
++  'trip-boarding',
++  'trip-cabin',
++  'trip-destination',
++  'trip-baggage',
++  'trip-checkin',
++  'trip-parking',
++  'trip-shop',
++  'trip-lounge',
++  'trip-pickup',
++  'trip-taxi',
++  'trip-metro',
++  'trip-hotel',
++  'trip-checkin-hotel',
++  'trip-receipt',
++  'trip-weather',
++  'trip-service-map',
++  'trip-delay-notice',
++  'trip-meal',
++  'trip-wifi',
++  'trip-reminder',
++  'trip-customer-service'
++];
++
++const tripScenario: ScenarioExpectation = {
++  homeButtonId: 'home-trip-button',
++  pageId: 'trip-page',
++  containerId: 'trip-progress',
++  layoutItemIds: TRIP_RENDER_ORDER,
++  stages: [
++    {
++      stage: 'phone',
++      visible: ['trip-security', 'trip-gate', 'trip-boarding', 'trip-destination'],
++      hidden: ['trip-cabin', 'trip-baggage', 'trip-checkin', 'trip-parking', 'trip-shop', 'trip-lounge', 'trip-pickup', 'trip-taxi', 'trip-metro', 'trip-hotel', 'trip-checkin-hotel', 'trip-receipt', 'trip-weather', 'trip-service-map', 'trip-delay-notice', 'trip-meal', 'trip-wifi', 'trip-reminder', 'trip-customer-service']
++    },
++    {
++      stage: 'foldable',
++      visible: ['trip-security', 'trip-gate', 'trip-boarding', 'trip-cabin', 'trip-destination', 'trip-baggage', 'trip-checkin', 'trip-parking'],
++      hidden: ['trip-shop', 'trip-lounge', 'trip-pickup', 'trip-taxi', 'trip-metro', 'trip-hotel', 'trip-checkin-hotel', 'trip-receipt', 'trip-weather', 'trip-service-map', 'trip-delay-notice', 'trip-meal', 'trip-wifi', 'trip-reminder', 'trip-customer-service']
++    },
++    {
++      stage: 'tablet',
++      visible: ['trip-security', 'trip-gate', 'trip-boarding', 'trip-cabin', 'trip-destination', 'trip-baggage', 'trip-checkin', 'trip-parking', 'trip-shop', 'trip-lounge'],
++      hidden: ['trip-pickup', 'trip-taxi', 'trip-metro', 'trip-hotel', 'trip-checkin-hotel', 'trip-receipt', 'trip-weather', 'trip-service-map', 'trip-delay-notice', 'trip-meal', 'trip-wifi', 'trip-reminder', 'trip-customer-service']
++    }
++  ]
++};
++
++async function expectTripArrowVisibility(driver: Driver, visibleItems: string[]): Promise<void> {
++  for (let i = 0; i < TRIP_RENDER_ORDER.length - 1; i++) {
++    const current = TRIP_RENDER_ORDER[i];
++    const next = TRIP_RENDER_ORDER[i + 1];
++    const arrowId = `${current}-arrow`;
++    const shouldBeVisible = visibleItems.indexOf(current) >= 0 && visibleItems.indexOf(next) >= 0;
++    if (shouldBeVisible) {
++      await expectVisibleInContainer(driver, arrowId, tripScenario.containerId);
++    } else {
++      await expectHiddenOrZeroSize(driver, arrowId);
++    }
++  }
++}
++
++export default function tripHiddenCapabilityTest() {
++  describe('TripScenario', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        await launchApp(driver);
++        await enterScenario(driver, tripScenario.homeButtonId, tripScenario.pageId);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    afterAll(async () => {
++      try {
++        await driver.pressBack();
++        await driver.waitForIdle(600, 3000);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_trip_nodes_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDevice(driver, tripScenario);
++        const currentStage = detectDeviceStage();
++        const expectation = tripScenario.stages.find(e => e.stage === currentStage);
++        if (expectation !== undefined) {
++          await expectTripArrowVisibility(driver, expectation.visible);
++        }
++      } catch (error) {
++        failTest(error);
++      }
++    });
++
++    it('should_keep_trip_nodes_layout_stable_on_current_device', 0, async () => {
++      try {
++        await verifyCurrentDeviceStableLayout(driver, tripScenario);
++      } catch (error) {
++        failTest(error);
++      }
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/module.json5 b/entry/src/ohosTest/module.json5
+new file mode 100644
+index 0000000..1647b75
+--- /dev/null
++++ b/entry/src/ohosTest/module.json5
+@@ -0,0 +1,12 @@
++{
++  "module": {
++    "name": "entry_test",
++    "type": "feature",
++    "deviceTypes": [
++      "phone",
++      "tablet"
++    ],
++    "deliveryWithInstall": true,
++    "installationFree": false
++  }
++}

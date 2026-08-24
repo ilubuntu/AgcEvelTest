@@ -1,0 +1,19 @@
+{
+  "routerMap": [
+    {
+      "name": "HomePage",
+      "pageSourceFile": "src/main/ets/pages/HomePage.ets",
+      "buildFunction": "HomePageBuilder"
+    },
+    {
+      "name": "ALLPage",
+      "pageSourceFile": "src/main/ets/pages/ALLPage.ets",
+      "buildFunction": "ALLPageBuilder"
+    },
+    {
+      "name": "MorePage",
+      "pageSourceFile": "src/main/ets/components/MorePage.ets",
+      "buildFunction": "MorePageBuilder"
+    }
+  ]
+}

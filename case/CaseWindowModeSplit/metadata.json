@@ -1,0 +1,35 @@
+{
+  "case_id": "weather-from-base-example",
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "task",
+  "fail_to_pass": [
+    "should_dialogContent_notOverlap_with_bottomButtons_after_split",
+    "should_safePage_icon_hidden_after_split",
+    "should_loginPage_content_scrollable_after_split",
+    "should_videoKeepAspectRatio_after_split"
+  ],
+  "pass_to_pass": [
+    "should_homeTabBar_fullyVisible_without_scroll_after_split"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "SplitDialog",
+        "file": "products/phone/src/ohosTest/ets/test/SplitDialog.test.ets"
+      },
+      {
+        "suite": "SplitImage",
+        "file": "products/phone/src/ohosTest/ets/test/SplitImage.test.ets"
+      },
+      {
+        "suite": "SplitScroll",
+        "file": "products/phone/src/ohosTest/ets/test/SplitScroll.test.ets"
+      },
+      {
+        "suite": "SplitTab",
+        "file": "products/phone/src/ohosTest/ets/test/SplitTab.test.ets"
+      }
+    ]
+  }
+}
