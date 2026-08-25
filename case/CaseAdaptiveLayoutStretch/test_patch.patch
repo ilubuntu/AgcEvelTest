@@ -1,0 +1,370 @@
+diff --git a/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+new file mode 100644
+index 0000000..f246099
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+@@ -0,0 +1,36 @@
++import { describe, beforeAll, afterEach, it, expect } from '@ohos/hypium';
++import { Driver } from '@kit.TestKit';
++import { findComponentInHome, findComponentById } from './TestUtils';
++
++export default function commonPassToPassTest() {
++  describe('CommonPassToPassTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      driver = Driver.create();
++    });
++
++    afterEach(async () => {
++      await driver.pressBack();
++      await driver.waitForIdle(600, 3000);
++    });
++    // 断言商品首页存在
++    it('should_show_home_page', 0, async () => {
++      await findComponentInHome(driver, 'home-page');
++      const homePage = await findComponentById(driver, 'home-page');
++      expect(homePage !== null).assertTrue();
++    });
++    // 断言商品首页搜索框存在
++    it('should_show_search_input', 0, async () => {
++      await findComponentInHome(driver, 'home-page');
++      const searchInput = await findComponentById(driver, 'search-input');
++      expect(searchInput !== null).assertTrue();
++    });
++    // 断言商品首页签到、秒杀存在
++    it('should_show_card_area', 0, async () => {
++      await findComponentInHome(driver, 'home-page');
++      const cardArea = await findComponentById(driver, 'card-area');
++      expect(cardArea !== null).assertTrue();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/LgFailToPass.test.ets b/entry/src/ohosTest/ets/test/LgFailToPass.test.ets
+new file mode 100644
+index 0000000..52b3499
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/LgFailToPass.test.ets
+@@ -0,0 +1,59 @@
++import { describe, beforeAll, afterEach, it, expect } from '@ohos/hypium';
++import { Driver, Component } from '@kit.TestKit';
++import { findComponentInHome, getWindowVpWidth, getBreakpointName, findComponentById, BoundsRect, widthOf, px2vp } from './TestUtils';
++
++const BUNDLE_NAME = 'harmony_0919.huawei.myapplication';
++
++export default function lgFailToPassTest() {
++  describe('LgFailToPassTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      driver = Driver.create();
++    });
++
++    afterEach(async () => {
++      await driver.pressBack();
++      await driver.waitForIdle(600, 3000);
++    });
++    // 断言首页搜索框在lg断点下自适应父容器尺寸变化
++    it('should_search_input_adaptive_on_lg_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'search-input');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('lg');
++      const searchInput = await findComponentById(driver, 'search-input');
++      expect(searchInput !== null).assertTrue();
++      const searchBounds = await (searchInput as Component).getBounds() as BoundsRect;
++      const searchWidthVp = px2vp(widthOf(searchBounds));
++      const ratio =searchWidthVp / windowWidth;
++      expect(ratio > 0.8 && ratio <= 1).assertTrue();
++    });
++    // 断言首页签到卡片在lg断点下自适应父容器尺寸变化
++    it('should_card_checkin_adaptive_on_lg_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-checkin');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('lg');
++      const cardCheckin = await findComponentById(driver, 'card-checkin');
++      expect(cardCheckin !== null).assertTrue();
++      const cardBounds = await (cardCheckin as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.5).assertTrue();
++    });
++    // 断言首页秒杀卡片在lg断点下自适应父容器尺寸变化
++    it('should_card_seckill_adaptive_on_lg_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-seckill');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('lg');
++      const cardSeckill = await findComponentById(driver, 'card-seckill');
++      expect(cardSeckill !== null).assertTrue();
++      const cardBounds = await (cardSeckill as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.6).assertTrue();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/List.test.ets b/entry/src/ohosTest/ets/test/List.test.ets
+index 2a92f4c..135df7e 100644
+--- a/entry/src/ohosTest/ets/test/List.test.ets
++++ b/entry/src/ohosTest/ets/test/List.test.ets
+@@ -1,3 +1,11 @@
++import lgFailToPassTest from './LgFailToPass.test';
++import mdFailToPassTest from './MdFailToPass.test';
++import smFailToPassTest from './SmFailToPass.test';
++import commonPassToPassTest from './CommonPassToPass.test';
+ 
+ export default function testsuite() {
++  lgFailToPassTest();
++  mdFailToPassTest();
++  smFailToPassTest();
++  commonPassToPassTest();
+ }
+\ No newline at end of file
+diff --git a/entry/src/ohosTest/ets/test/MdFailToPass.test.ets b/entry/src/ohosTest/ets/test/MdFailToPass.test.ets
+new file mode 100644
+index 0000000..deb501f
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/MdFailToPass.test.ets
+@@ -0,0 +1,60 @@
++import { describe, beforeAll, afterEach, it, expect } from '@ohos/hypium';
++import { Driver, Component } from '@kit.TestKit';
++import { findComponentInHome, getWindowVpWidth, getBreakpointName, findComponentById, BoundsRect, widthOf,px2vp } from './TestUtils';
++
++const BUNDLE_NAME = 'harmony_0919.huawei.myapplication';
++
++export default function mdFailToPassTest() {
++  describe('MdFailToPassTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      driver = Driver.create();
++    });
++
++    afterEach(async () => {
++      await driver.pressBack();
++      await driver.waitForIdle(600, 3000);
++    });
++    // 断言首页搜索框在md断点下自适应父容器尺寸变化
++    it('should_search_input_adaptive_on_md_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'search-input');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('md');
++      const searchInput = await findComponentById(driver, 'search-input');
++      expect(searchInput !== null).assertTrue();
++      const searchBounds = await (searchInput as Component).getBounds() as BoundsRect;
++      const searchWidthVp = px2vp(widthOf(searchBounds));
++      const ratio =searchWidthVp / windowWidth;
++      expect(ratio > 0.8 && ratio <= 1).assertTrue();
++    });
++    // 断言首页签到卡片在md断点下自适应父容器尺寸变化
++    it('should_card_checkin_adaptive_on_md_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-checkin');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('md');
++      const cardCheckin = await findComponentById(driver, 'card-checkin');
++      expect(cardCheckin !== null).assertTrue();
++      const cardBounds = await (cardCheckin as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.5).assertTrue();
++    });
++    // 断言首页秒杀卡片在md断点下自适应父容器尺寸变化
++    it('should_card_seckill_adaptive_on_md_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-seckill');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('md');
++      const cardSeckill = await findComponentById(driver, 'card-seckill');
++      expect(cardSeckill !== null).assertTrue();
++      const cardBounds = await (cardSeckill as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.6).assertTrue();
++    });
++
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/SmFailToPass.test.ets b/entry/src/ohosTest/ets/test/SmFailToPass.test.ets
+new file mode 100644
+index 0000000..bc4b6f2
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/SmFailToPass.test.ets
+@@ -0,0 +1,59 @@
++import { describe, beforeAll, afterEach, it, expect } from '@ohos/hypium';
++import { Driver, Component } from '@kit.TestKit';
++import { findComponentInHome, getWindowVpWidth, getBreakpointName, findComponentById, BoundsRect, widthOf, px2vp } from './TestUtils';
++
++const BUNDLE_NAME = 'harmony_0919.huawei.myapplication';
++
++export default function smFailToPassTest() {
++  describe('SmFailToPassTest', () => {
++    let driver: Driver;
++
++    beforeAll(async () => {
++      driver = Driver.create();
++    });
++
++    afterEach(async () => {
++      await driver.pressBack();
++      await driver.waitForIdle(600, 3000);
++    });
++    // 断言首页搜索框在sm断点下自适应父容器尺寸变化
++    it('should_search_input_adaptive_on_sm_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'search-input');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('sm');
++      const searchInput = await findComponentById(driver, 'search-input');
++      expect(searchInput !== null).assertTrue();
++      const searchBounds = await (searchInput as Component).getBounds() as BoundsRect;
++      const searchWidthVp = px2vp(widthOf(searchBounds));
++      const ratio = searchWidthVp / windowWidth;
++      expect(ratio > 0.8 && ratio <= 1).assertTrue();
++    });
++    // 断言首页签到卡片在sm断点下自适应父容器尺寸变化
++    it('should_card_checkin_adaptive_on_sm_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-checkin');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('sm');
++      const cardCheckin = await findComponentById(driver, 'card-checkin');
++      expect(cardCheckin !== null).assertTrue();
++      const cardBounds = await (cardCheckin as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.5).assertTrue();
++    });
++    // 断言首页秒杀卡片在sm断点下自适应父容器尺寸变化
++    it('should_card_seckill_adaptive_on_sm_breakpoint', 0, async () => {
++      await findComponentInHome(driver, 'card-seckill');
++      const windowWidth = await getWindowVpWidth(driver, BUNDLE_NAME);
++      const bp = getBreakpointName(windowWidth);
++      expect(bp).assertEqual('sm');
++      const cardSeckill = await findComponentById(driver, 'card-seckill');
++      expect(cardSeckill !== null).assertTrue();
++      const cardBounds = await (cardSeckill as Component).getBounds() as BoundsRect;
++      const cardWidthVp = px2vp(widthOf(cardBounds));
++      const ratio = cardWidthVp / windowWidth;
++      expect(ratio > 0.3 && ratio <= 0.6).assertTrue();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/TestUtils.ets b/entry/src/ohosTest/ets/test/TestUtils.ets
+new file mode 100644
+index 0000000..66f57ae
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/TestUtils.ets
+@@ -0,0 +1,109 @@
++import { Driver, ON, Component, UiWindow } from '@kit.TestKit';
++import AbilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++
++export function px2vp(px: number): number {
++  return px / 3;
++}
++
++const APP_BUNDLE_NAME: string = 'harmony_0919.huawei.myapplication';
++const APP_ENTRY_ABILITY: string = 'EntryAbility';
++
++export const BREAKPOINT_SM = 600;
++export const BREAKPOINT_MD = 840;
++export const BREAKPOINT_LG = 1440;
++
++export function getBreakpointName(vpWidth: number): string {
++  if (vpWidth < BREAKPOINT_SM) {
++    return 'sm';
++  } else if (vpWidth < BREAKPOINT_MD) {
++    return 'md';
++  } else if (vpWidth < BREAKPOINT_LG) {
++    return 'lg';
++  } else {
++    return 'xl';
++  }
++}
++
++export async function getWindowVpWidth(driver: Driver, bundleName: string): Promise<number> {
++  try {
++    const window: UiWindow = await driver.findWindow({ bundleName: bundleName, active: true });
++    const bounds = await window.getBounds();
++    const windowWidthPx = bounds.right - bounds.left;
++    return px2vp(windowWidthPx);
++  } catch (e) {
++    console.error('TestHelper: Failed to get window vp width, error: ' + JSON.stringify(e));
++    return -1;
++  }
++}
++
++export interface BoundsRect {
++  left: number;
++  top: number;
++  right: number;
++  bottom: number;
++}
++
++export async function findComponentById(driver: Driver, id: string): Promise<Component | null> {
++  try {
++    return await driver.findComponent(ON.id(id));
++  } catch (error) {
++    return null;
++  }
++}
++
++export function widthOf(bounds: BoundsRect): number {
++  return bounds.right - bounds.left;
++}
++
++export function heightOf(bounds: BoundsRect): number {
++  return bounds.bottom - bounds.top;
++}
++
++export async function findComponentInHome(driver: Driver, targetId: string): Promise<void> {
++  const delegator = AbilityDelegatorRegistry.getAbilityDelegator();
++  const want: Want = {
++    bundleName: APP_BUNDLE_NAME,
++    abilityName: APP_ENTRY_ABILITY
++  };
++  try {
++    const window: UiWindow = await driver.findWindow({ bundleName: APP_BUNDLE_NAME, active: true });
++    if (window) {
++      await driver.pressBack();
++      await driver.waitForIdle(500, 2000);
++    }
++  } catch (e) {
++  }
++  await delegator.startAbility(want);
++  await driver.waitForIdle(2000, 8000);
++  let retryCount = 0;
++  const maxRetries = 10;
++  while (retryCount < maxRetries) {
++    try {
++      await driver.assertComponentExist(ON.id('home-page'));
++      break;
++    } catch (e) {
++      if (retryCount === maxRetries - 1) {
++        throw new Error('home-page component not found after ' + maxRetries + ' retries');
++      }
++      await driver.waitForIdle(500, 2000);
++      retryCount++;
++    }
++  }
++  await driver.waitForIdle(500, 3000);
++  retryCount = 0;
++  while (retryCount < maxRetries) {
++    try {
++      await driver.assertComponentExist(ON.id(targetId));
++      break;
++    } catch (e) {
++      if (retryCount === maxRetries - 1) {
++        throw new Error(targetId + ' component not found after ' + maxRetries + ' retries');
++      }
++      await driver.waitForIdle(500, 2000);
++      retryCount++;
++    }
++  }
++  await driver.waitForIdle(300, 2000);
++}
++

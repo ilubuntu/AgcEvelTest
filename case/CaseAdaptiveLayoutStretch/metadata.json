@@ -1,0 +1,64 @@
+{
+  "case_id": "case-adaptive-layout-stretch",
+  "mode": "from_base",
+  "source_base_commit": "b6d74ddfda9be8336a127bfa289956752562d180",
+  "source_answer_commit": null,
+  "removal_commits": [],
+  "golden_commits": [
+    "7a24aa069d4a0a8adb69a8bc06d12efda3f898cd"
+  ],
+  "test_commits": [
+    "7b3f0f534922ad92747ffc6f9e26ca3db9ec0f20"
+  ],
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "base",
+  "fail_to_pass": [
+    "should_search_input_adaptive_on_md_breakpoint",
+    "should_card_checkin_adaptive_on_md_breakpoint",
+    "should_card_seckill_adaptive_on_md_breakpoint",
+    "should_search_input_adaptive_on_lg_breakpoint",
+    "should_card_checkin_adaptive_on_lg_breakpoint",
+    "should_card_seckill_adaptive_on_lg_breakpoint",
+    "should_search_input_adaptive_on_sm_breakpoint",
+    "should_card_checkin_adaptive_on_sm_breakpoint",
+    "should_card_seckill_adaptive_on_sm_breakpoint"
+  ],
+  "pass_to_pass": [
+    "should_show_home_page",
+    "should_show_search_input",
+    "should_show_card_area"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "SmFailToPassTest",
+        "file": "entry/src/ohosTest/ets/test/SmFailToPass.test.ets"
+      }
+    ],
+    "foldable": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "MdFailToPassTest",
+        "file": "entry/src/ohosTest/ets/test/MdFailToPass.test.ets"
+      }
+    ],
+    "tablet": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "LgFailToPassTest",
+        "file": "entry/src/ohosTest/ets/test/LgFailToPass.test.ets"
+      }
+    ]
+  }
+}

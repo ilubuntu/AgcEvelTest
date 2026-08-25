@@ -1,0 +1,66 @@
+{
+  "case_id": "responsive-indentation-layout",
+  "golden_patch": "golden_patch.patch",
+  "test_patch": "test_patch.patch",
+  "base_project": "task",
+  "fail_to_pass": [
+    "should_center_single_column_content_on_medium_breakpoint",
+    "should_reduce_single_column_width_on_medium_breakpoint",
+    "should_center_single_column_content_on_large_breakpoint",
+    "should_keep_single_column_content_width_bounded_on_large_breakpoint"
+  ],
+  "pass_to_pass": [
+    "should_start_setting_page_successfully",
+    "should_show_reading_content",
+    "should_show_setting_form_content",
+    "should_keep_setting_page_scrollable",
+    "should_show_reading_content_on_small_breakpoint",
+    "should_use_nearly_full_width_content_on_small_breakpoint",
+    "should_keep_reading_cards_visible_without_horizontal_overflow_on_small_breakpoint",
+    "should_keep_form_fields_visible_without_horizontal_overflow_on_small_breakpoint",
+    "should_show_reading_content_on_medium_breakpoint",
+    "should_keep_reading_cards_visible_without_horizontal_overflow_on_medium_breakpoint",
+    "should_show_reading_content_on_large_breakpoint",
+    "should_keep_reading_cards_visible_without_horizontal_overflow_on_large_breakpoint"
+  ],
+  "device_test_suites": {
+    "phone": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "SmPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/SmPassToPass.test.ets"
+      }
+    ],
+    "foldable": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "MdPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/MdPassToPass.test.ets"
+      },
+      {
+        "suite": "MdFailToPassTest",
+        "file": "entry/src/ohosTest/ets/test/MdFailToPass.test.ets"
+      }
+    ],
+    "tablet": [
+      {
+        "suite": "CommonPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/CommonPassToPass.test.ets"
+      },
+      {
+        "suite": "LgPassToPassTest",
+        "file": "entry/src/ohosTest/ets/test/LgPassToPass.test.ets"
+      },
+      {
+        "suite": "LgFailToPassTest",
+        "file": "entry/src/ohosTest/ets/test/LgFailToPass.test.ets"
+      }
+    ]
+  }
+}

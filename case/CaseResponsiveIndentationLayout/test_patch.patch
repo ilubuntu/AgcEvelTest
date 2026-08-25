@@ -1,0 +1,696 @@
+diff --git a/entry/src/ohosTest/ets/test/Ability.test.ets b/entry/src/ohosTest/ets/test/Ability.test.ets
+new file mode 100644
+index 0000000..df76d81
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/Ability.test.ets
+@@ -0,0 +1,18 @@
++import { hilog } from '@kit.PerformanceAnalysisKit';
++import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium';
++
++export default function abilityTest() {
++  describe('ActsAbilityTest', () => {
++    beforeAll(() => {})
++    beforeEach(() => {})
++    afterEach(() => {})
++    afterAll(() => {})
++    it('assertContain', 0, () => {
++      hilog.info(0x0000, 'testTag', '%{public}s', 'it begin');
++      let a = 'abc';
++      let b = 'b';
++      expect(a).assertContain(b);
++      expect(a).assertEqual(a);
++    })
++  })
++}
+diff --git a/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+new file mode 100644
+index 0000000..02d4779
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/CommonPassToPass.test.ets
+@@ -0,0 +1,89 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++export default function CommonPassToPassTest() {
++  describe('CommonPassToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('CommonPassToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_start_setting_page_successfully', 0, async (done: Function) => {
++      let scrollContainer = await driver.findComponent(ON.id('setting-page-scroll'));
++      expect(scrollContainer !== null).assertTrue();
++      done();
++    });
++
++    it('should_show_reading_content', 0, async (done: Function) => {
++      let indentTitle = await driver.findComponent(ON.text('设置'));
++      let readingCard0 = await driver.findComponent(ON.text('个人信息'));
++      let readingCard1 = await driver.findComponent(ON.text('字体大小'));
++
++      expect(indentTitle !== null).assertTrue();
++      expect(readingCard0 !== null).assertTrue();
++      expect(readingCard1 !== null).assertTrue();
++      done();
++    });
++
++    it('should_show_setting_form_content', 0, async (done: Function) => {
++      let notifySwitch = await driver.findComponent(ON.text('通知开关'));
++      let recommendSwitch = await driver.findComponent(ON.text('个性化推荐'));
++      expect(notifySwitch !== null).assertTrue();
++      expect(recommendSwitch !== null).assertTrue();
++
++      let toggles = await driver.findComponents(ON.type('Toggle'));
++      expect(toggles.length).assertLarger(0);
++
++      let displayMode = await driver.findComponent(ON.text('显示模式'));
++      expect(displayMode !== null).assertTrue();
++      let defaultSelectValue = await driver.findComponent(ON.text('跟随系统'));
++      expect(defaultSelectValue !== null).assertTrue();
++      done();
++    });
++
++    it('should_keep_setting_page_scrollable', 0, async (done: Function) => {
++      let scrollContainer = await driver.findComponent(ON.id('setting-page-scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let bounds = await scrollContainer.getBounds();
++      let centerX = (bounds.left + bounds.right) / 2;
++      let startY = bounds.bottom - 100;
++      let endY = bounds.top + 100;
++      await driver.swipe(
++        Math.round(centerX),
++        Math.round(startY),
++        Math.round(centerX),
++        Math.round(endY)
++      );
++      await driver.delayMs(1000);
++
++      let group5Title = await driver.findComponent(ON.text('了解我们如何使用您的数据'));
++      let lastItem = await driver.findComponent(ON.text('隐私声明摘要'));
++      expect(group5Title !== null).assertTrue();
++      expect(lastItem !== null).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/LgFailToPass.test.ets b/entry/src/ohosTest/ets/test/LgFailToPass.test.ets
+new file mode 100644
+index 0000000..37def89
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/LgFailToPass.test.ets
+@@ -0,0 +1,90 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++function isLargeBreakpoint(): boolean {
++  let displayInfo = display.getDefaultDisplaySync();
++  let widthVp = displayInfo.width / displayInfo.densityPixels;
++  return widthVp >= 840;
++}
++
++export default function LgFailToPassTest() {
++  describe('LgFailToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('LgFailToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_center_single_column_content_on_large_breakpoint', 0, async (done: Function) => {
++      if (!isLargeBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let displayInfo = display.getDefaultDisplaySync();
++      let screenWidthPx = displayInfo.width;
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let leftGutterPx = scrollBounds.left;
++      let rightGutterPx = screenWidthPx - scrollBounds.right;
++
++      console.info(`[LgFailToPass] gutter: left=${leftGutterPx}px, right=${rightGutterPx}px, screen=${screenWidthPx}px`);
++
++      let minGutterThreshold = screenWidthPx * 0.12;
++      expect(leftGutterPx > minGutterThreshold).assertTrue();
++      expect(rightGutterPx > minGutterThreshold).assertTrue();
++
++      let diff = Math.abs(leftGutterPx - rightGutterPx);
++      expect(diff <= 8).assertTrue();
++      done();
++    });
++
++    it('should_keep_single_column_content_width_bounded_on_large_breakpoint', 0, async (done: Function) => {
++      if (!isLargeBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let displayInfo = display.getDefaultDisplaySync();
++      let screenWidthPx = displayInfo.width;
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let scrollWidthPx = scrollBounds.right - scrollBounds.left;
++
++      let ratio = scrollWidthPx / screenWidthPx;
++      console.info(`[LgFailToPass] width ratio: ${ratio}`);
++      expect(ratio <= 0.72).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/LgPassToPass.test.ets b/entry/src/ohosTest/ets/test/LgPassToPass.test.ets
+new file mode 100644
+index 0000000..a9cdad8
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/LgPassToPass.test.ets
+@@ -0,0 +1,83 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++function isLargeBreakpoint(): boolean {
++  let displayInfo = display.getDefaultDisplaySync();
++  let widthVp = displayInfo.width / displayInfo.densityPixels;
++  return widthVp >= 840;
++}
++
++export default function LgPassToPassTest() {
++  describe('LgPassToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('LgPassToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_show_reading_content_on_large_breakpoint', 0, async (done: Function) => {
++      if (!isLargeBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let title = await driver.findComponent(ON.text('设置'));
++      let readCard = await driver.findComponent(ON.text('个人信息'));
++      let formCard = await driver.findComponent(ON.text('通知开关'));
++
++      expect(title !== null).assertTrue();
++      expect(readCard !== null).assertTrue();
++      expect(formCard !== null).assertTrue();
++      done();
++    });
++
++    it('should_keep_reading_cards_visible_without_horizontal_overflow_on_large_breakpoint', 0, async (done: Function) => {
++      if (!isLargeBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      let readingCard0 = await driver.findComponent(ON.id('reading-card-0'));
++      let readingCard1 = await driver.findComponent(ON.id('reading-card-1'));
++
++      expect(scrollContainer !== null).assertTrue();
++      expect(readingCard0 !== null).assertTrue();
++      expect(readingCard1 !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let cardBounds0 = await readingCard0.getBounds();
++      let cardBounds1 = await readingCard1.getBounds();
++
++      expect(cardBounds0.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds0.right <= scrollBounds.right).assertTrue();
++      expect(cardBounds1.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds1.right <= scrollBounds.right).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/List.test.ets b/entry/src/ohosTest/ets/test/List.test.ets
+new file mode 100644
+index 0000000..1b072b2
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/List.test.ets
+@@ -0,0 +1,17 @@
++import abilityTest from './Ability.test';
++import CommonPassToPassTest from './CommonPassToPass.test';
++import SmPassToPassTest from './SmPassToPass.test';
++import MdPassToPassTest from './MdPassToPass.test';
++import MdFailToPassTest from './MdFailToPass.test';
++import LgPassToPassTest from './LgPassToPass.test';
++import LgFailToPassTest from './LgFailToPass.test';
++
++export default function testsuite() {
++  abilityTest();
++  CommonPassToPassTest();
++  SmPassToPassTest();
++  MdPassToPassTest();
++  MdFailToPassTest();
++  LgPassToPassTest();
++  LgFailToPassTest();
++}
+\ No newline at end of file
+diff --git a/entry/src/ohosTest/ets/test/MdFailToPass.test.ets b/entry/src/ohosTest/ets/test/MdFailToPass.test.ets
+new file mode 100644
+index 0000000..c5ade1c
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/MdFailToPass.test.ets
+@@ -0,0 +1,90 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++function isMediumBreakpoint(): boolean {
++  let displayInfo = display.getDefaultDisplaySync();
++  let widthVp = displayInfo.width / displayInfo.densityPixels;
++  return widthVp >= 600 && widthVp < 840;
++}
++
++export default function MdFailToPassTest() {
++  describe('MdFailToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('MdFailToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_center_single_column_content_on_medium_breakpoint', 0, async (done: Function) => {
++      if (!isMediumBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let displayInfo = display.getDefaultDisplaySync();
++      let screenWidthPx = displayInfo.width;
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let leftGutterPx = scrollBounds.left;
++      let rightGutterPx = screenWidthPx - scrollBounds.right;
++
++      console.info(`[MdFailToPass] gutter: left=${leftGutterPx}px, right=${rightGutterPx}px, screen=${screenWidthPx}px`);
++
++      let minGutterThreshold = screenWidthPx * 0.08;
++      expect(leftGutterPx > minGutterThreshold).assertTrue();
++      expect(rightGutterPx > minGutterThreshold).assertTrue();
++
++      let diff = Math.abs(leftGutterPx - rightGutterPx);
++      expect(diff <= 8).assertTrue();
++      done();
++    });
++
++    it('should_reduce_single_column_width_on_medium_breakpoint', 0, async (done: Function) => {
++      if (!isMediumBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let displayInfo = display.getDefaultDisplaySync();
++      let screenWidthPx = displayInfo.width;
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let scrollWidthPx = scrollBounds.right - scrollBounds.left;
++
++      let ratio = scrollWidthPx / screenWidthPx;
++      console.info(`[MdFailToPass] width ratio: ${ratio}`);
++      expect(ratio <= 0.82).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/MdPassToPass.test.ets b/entry/src/ohosTest/ets/test/MdPassToPass.test.ets
+new file mode 100644
+index 0000000..a0f0be6
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/MdPassToPass.test.ets
+@@ -0,0 +1,83 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++function isMediumBreakpoint(): boolean {
++  let displayInfo = display.getDefaultDisplaySync();
++  let widthVp = displayInfo.width / displayInfo.densityPixels;
++  return widthVp >= 600 && widthVp < 840;
++}
++
++export default function MdPassToPassTest() {
++  describe('MdPassToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('MdPassToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_show_reading_content_on_medium_breakpoint', 0, async (done: Function) => {
++      if (!isMediumBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let title = await driver.findComponent(ON.text('设置'));
++      let readCard = await driver.findComponent(ON.text('个人信息'));
++      let formCard = await driver.findComponent(ON.text('通知开关'));
++
++      expect(title !== null).assertTrue();
++      expect(readCard !== null).assertTrue();
++      expect(formCard !== null).assertTrue();
++      done();
++    });
++
++    it('should_keep_reading_cards_visible_without_horizontal_overflow_on_medium_breakpoint', 0, async (done: Function) => {
++      if (!isMediumBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      let readingCard0 = await driver.findComponent(ON.id('reading-card-0'));
++      let readingCard1 = await driver.findComponent(ON.id('reading-card-1'));
++
++      expect(scrollContainer !== null).assertTrue();
++      expect(readingCard0 !== null).assertTrue();
++      expect(readingCard1 !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let cardBounds0 = await readingCard0.getBounds();
++      let cardBounds1 = await readingCard1.getBounds();
++
++      expect(cardBounds0.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds0.right <= scrollBounds.right).assertTrue();
++      expect(cardBounds1.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds1.right <= scrollBounds.right).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/ets/test/SmPassToPass.test.ets b/entry/src/ohosTest/ets/test/SmPassToPass.test.ets
+new file mode 100644
+index 0000000..8f17c8d
+--- /dev/null
++++ b/entry/src/ohosTest/ets/test/SmPassToPass.test.ets
+@@ -0,0 +1,125 @@
++import { describe, beforeAll, it, expect } from '@ohos/hypium';
++import { Driver, ON } from '@ohos.UiTest';
++import abilityDelegatorRegistry from '@ohos.app.ability.abilityDelegatorRegistry';
++import Want from '@ohos.app.ability.Want';
++import display from '@ohos.display';
++
++const delegator = abilityDelegatorRegistry.getAbilityDelegator();
++
++async function startAbility(driver: Driver, bundleName: string, abilityName: string) {
++  let want: Want = {
++    bundleName: bundleName,
++    abilityName: abilityName
++  };
++  await delegator.startAbility(want);
++  await driver.delayMs(1000);
++}
++
++function isSmallBreakpoint(): boolean {
++  let displayInfo = display.getDefaultDisplaySync();
++  let widthVp = displayInfo.width / displayInfo.densityPixels;
++  return widthVp < 600;
++}
++
++export default function SmPassToPassTest() {
++  describe('SmPassToPassTest', () => {
++
++    let driver: Driver;
++    let bundleName: string;
++
++    beforeAll(async () => {
++      try {
++        driver = Driver.create();
++        bundleName = abilityDelegatorRegistry.getArguments().bundleName;
++        await startAbility(driver, bundleName, 'EntryAbility');
++      } catch (e) {
++        console.error('SmPassToPass beforeAll error: ' + JSON.stringify(e));
++      }
++    });
++
++    it('should_show_reading_content_on_small_breakpoint', 0, async (done: Function) => {
++      if (!isSmallBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let title = await driver.findComponent(ON.text('设置'));
++      let readCard = await driver.findComponent(ON.text('个人信息'));
++      let formCard = await driver.findComponent(ON.text('通知开关'));
++
++      expect(title !== null).assertTrue();
++      expect(readCard !== null).assertTrue();
++      expect(formCard !== null).assertTrue();
++      done();
++    });
++
++    it('should_use_nearly_full_width_content_on_small_breakpoint', 0, async (done: Function) => {
++      if (!isSmallBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let displayInfo = display.getDefaultDisplaySync();
++      let screenWidthPx = displayInfo.width;
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      expect(scrollContainer !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let scrollWidthPx = scrollBounds.right - scrollBounds.left;
++
++      let ratio = scrollWidthPx / screenWidthPx;
++      console.info(`[SmPassToPass] width ratio: ${ratio}`);
++      expect(ratio >= 0.92).assertTrue();
++      done();
++    });
++
++    it('should_keep_reading_cards_visible_without_horizontal_overflow_on_small_breakpoint', 0, async (done: Function) => {
++      if (!isSmallBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      let readingCard0 = await driver.findComponent(ON.id('reading-card-0'));
++      let readingCard1 = await driver.findComponent(ON.id('reading-card-1'));
++
++      expect(scrollContainer !== null).assertTrue();
++      expect(readingCard0 !== null).assertTrue();
++      expect(readingCard1 !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let cardBounds0 = await readingCard0.getBounds();
++      let cardBounds1 = await readingCard1.getBounds();
++
++      expect(cardBounds0.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds0.right <= scrollBounds.right).assertTrue();
++      expect(cardBounds1.left >= scrollBounds.left).assertTrue();
++      expect(cardBounds1.right <= scrollBounds.right).assertTrue();
++      done();
++    });
++
++    it('should_keep_form_fields_visible_without_horizontal_overflow_on_small_breakpoint', 0, async (done: Function) => {
++      if (!isSmallBreakpoint()) {
++        expect(true).assertTrue();
++        done();
++        return;
++      }
++
++      let scrollContainer = await driver.findComponent(ON.type('Scroll'));
++      let formToggle = await driver.findComponent(ON.type('Toggle'));
++
++      expect(scrollContainer !== null).assertTrue();
++      expect(formToggle !== null).assertTrue();
++
++      let scrollBounds = await scrollContainer.getBounds();
++      let toggleBounds = await formToggle.getBounds();
++
++      expect(toggleBounds.right <= scrollBounds.right).assertTrue();
++      done();
++    });
++  });
++}
+diff --git a/entry/src/ohosTest/module.json5 b/entry/src/ohosTest/module.json5
+new file mode 100644
+index 0000000..6902687
+--- /dev/null
++++ b/entry/src/ohosTest/module.json5
+@@ -0,0 +1,12 @@
++{
++  "module": {
++    "name": "entry_test",
++    "type": "feature",
++    "deviceTypes": [
++      "default",
++      "tablet"
++    ],
++    "deliveryWithInstall": true,
++    "installationFree": false
++  }
++}
+diff --git a/entry/src/test/List.test.ets b/entry/src/test/List.test.ets
+new file mode 100644
+index 0000000..bb5b5c3
+--- /dev/null
++++ b/entry/src/test/List.test.ets
+@@ -0,0 +1,5 @@
++import localUnitTest from './LocalUnit.test';
++
++export default function testsuite() {
++  localUnitTest();
++}
+\ No newline at end of file
+diff --git a/entry/src/test/LocalUnit.test.ets b/entry/src/test/LocalUnit.test.ets
+new file mode 100644
+index 0000000..7ff1254
+--- /dev/null
++++ b/entry/src/test/LocalUnit.test.ets
+@@ -0,0 +1,16 @@
++import { describe, beforeAll, beforeEach, afterEach, afterAll, it, expect } from '@ohos/hypium';
++
++export default function localUnitTest() {
++  describe('localUnitTest', () => {
++    beforeAll(() => {});
++    beforeEach(() => {});
++    afterEach(() => {});
++    afterAll(() => {});
++    it('assertContain', 0, () => {
++      let a = 'abc';
++      let b = 'b';
++      expect(a).assertContain(b);
++      expect(a).assertEqual(a);
++    });
++  });
++}

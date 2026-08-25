@@ -1,0 +1,85 @@
+diff --git a/entry/src/main/ets/common/Constants.ets b/entry/src/main/ets/common/Constants.ets
+index 64c8f3a..62375b2 100644
+--- a/entry/src/main/ets/common/Constants.ets
++++ b/entry/src/main/ets/common/Constants.ets
+@@ -4,3 +4,19 @@ export enum SettingType {
+   SELECT = 'select', // 下拉选择
+   TEXT = 'text',     // 纯文本展示
+ }
++
++export class GridRowColSetting {
++  static readonly BREAK_POINT_VALUE: string[] = ['0', '600vp', '840vp', '1440vp'];
++  static readonly GRID_ROW_OPTIONS_COLUMNS: GridRowColumnOption = { sm: 4, md: 8, lg: 12, xl: 12 }
++  static readonly GRID_ROW_OPTIONS_GUTTER_X: GridRowSizeOption = { sm: 8, md: 12, lg: 16, xl: 20 }
++
++  static readonly DEFAULT_GRID_ROW_OPTIONS: GridRowOptions = {
++    gutter: { x: GridRowColSetting.GRID_ROW_OPTIONS_GUTTER_X },
++    columns: GridRowColSetting.GRID_ROW_OPTIONS_COLUMNS,
++    breakpoints: { value: GridRowColSetting.BREAK_POINT_VALUE, reference: BreakpointsReference.WindowSize },
++    direction: GridRowDirection.Row,
++  };
++
++  static readonly DEFAULT_CENTER_COL_SPAN: GridColColumnOption = { sm: 4, md: 6, lg: 8, xl: 8 };
++  static readonly DEFAULT_CENTER_COL_OFFSET: GridColColumnOption = { sm: 0, md: 1, lg: 2, xl: 2 };
++}
+diff --git a/entry/src/main/ets/pages/Index.ets b/entry/src/main/ets/pages/Index.ets
+index a223dd3..3ff5b6f 100644
+--- a/entry/src/main/ets/pages/Index.ets
++++ b/entry/src/main/ets/pages/Index.ets
+@@ -1,4 +1,4 @@
+-import { SettingType } from '../common/Constants';
++import { SettingType, GridRowColSetting } from '../common/Constants';
+ import { SettingItem, SettingGroup } from '../common/SettingModels';
+ import { SettingCard } from '../components/SettingCard';
+ 
+@@ -48,18 +48,26 @@ struct Index {
+   build() {
+     Navigation(this.navPathStack) {
+ 
+-      Scroll() {
+-        Column({ space: 16 }) {
+-          ForEach(this.settingList, (group: SettingGroup, index: number) => {
+-            SettingCard({ group: group })
+-              .id(`reading-card-${index}`)
+-          }, (group: SettingGroup) => group.id)
++      GridRow(GridRowColSetting.DEFAULT_GRID_ROW_OPTIONS) {
++        GridCol({
++          span: GridRowColSetting.DEFAULT_CENTER_COL_SPAN,
++          offset: GridRowColSetting.DEFAULT_CENTER_COL_OFFSET,
++        }) {
++          Scroll() {
++            Column({ space: 16 }) {
++              ForEach(this.settingList, (group: SettingGroup, index: number) => {
++                SettingCard({ group: group })
++                  .id(`reading-card-${index}`)
++              }, (group: SettingGroup) => group.id)
++            }
++            .padding({ top: 16, bottom: 32, left: 16, right: 16 })
++          }
++          .id('setting-page-scroll')
++          .scrollBar(BarState.Off)
++          .width('100%')
++          .height('100%')
+         }
+-        .padding({ top: 16, bottom: 32, left: 16, right: 16 })
+-        .width('100%')
+       }
+-      .id('setting-page-scroll')
+-      .scrollBar(BarState.Off)
+       .width('100%')
+       .height('100%')
+       .backgroundColor($r('sys.color.background_secondary'))
+diff --git a/entry/src/main/module.json5 b/entry/src/main/module.json5
+index 53024e8..ec778ae 100644
+--- a/entry/src/main/module.json5
++++ b/entry/src/main/module.json5
+@@ -5,7 +5,8 @@
+     "description": "$string:module_desc",
+     "mainElement": "EntryAbility",
+     "deviceTypes": [
+-      "phone"
++      "phone",
++      "tablet"
+     ],
+     "deliveryWithInstall": true,
+     "installationFree": false,

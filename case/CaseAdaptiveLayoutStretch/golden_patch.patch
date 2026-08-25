@@ -1,0 +1,50 @@
+diff --git a/entry/src/main/ets/pages/Index.ets b/entry/src/main/ets/pages/Index.ets
+index 11faad8..7f0ed63 100644
+--- a/entry/src/main/ets/pages/Index.ets
++++ b/entry/src/main/ets/pages/Index.ets
+@@ -46,13 +46,15 @@ struct Index {
+           .height('100%')
+           .alignItems(VerticalAlign.Center)
+         }
+-        .width(200)
++        .flexGrow(1)
++        .flexShrink(1)
+         .height(36)
+         .backgroundColor('#EEEEEE')
+         .borderRadius(18)
+         .padding({ left: 12, right: 12 })
+         .id('search-input')
+       }
++      .width('100%')
+       .alignSelf(ItemAlign.Start)
+     }
+     .width('100%')
+@@ -134,7 +136,7 @@ struct Index {
+ 
+   @Builder
+   signInFlashSale() {
+-    Flex({ justifyContent: FlexAlign.SpaceBetween, alignItems: ItemAlign.Center }) {
++    Row() {
+       Flex({ justifyContent: FlexAlign.Center, alignItems: ItemAlign.Center, direction: FlexDirection.Column }) {
+         Image($r('app.media.ic_checkin'))
+           .width(32)
+@@ -148,7 +150,8 @@ struct Index {
+           .fontColor('#999999')
+           .margin({ top: 2 })
+       }
+-      .width(100)
++      .flexGrow(1)
++      .flexShrink(1)
+       .height(100)
+       .backgroundColor('#FFFFFF')
+       .borderRadius(12)
+@@ -171,7 +174,8 @@ struct Index {
+           .fontColor('#FF6B6B')
+           .margin({ top: 8 })
+       }
+-      .width(100)
++      .flexGrow(1)
++      .flexShrink(1)
+       .height(100)
+       .backgroundColor('#FFFFFF')
+       .borderRadius(12)
