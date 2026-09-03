@@ -10,7 +10,6 @@ import {
   FULL_SIZE,
   RADIUS_ICON,
   RADIUS_PANEL,
-  SPACE_LG,
   SPACE_PAGE,
   SPACE_SECTION,
   SPACE_SM,
@@ -51,11 +50,12 @@ struct DiamondAreaScenarioPage {
 
   @Builder
   body() {
-    Row({ space: SPACE_LG }) {
+    Row() {
       ForEach(DIAMOND_ENTRIES, (item: CaseItem) => {
         this.entryItem(item)
       }, (item: CaseItem) => item.id)
     }
+    .justifyContent(FlexAlign.SpaceEvenly)
     .id('section-diamond')
     .width(FULL_SIZE)
     .padding({ top: SPACE_PAGE, bottom: SPACE_PAGE })

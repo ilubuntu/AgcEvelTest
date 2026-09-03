@@ -4,7 +4,8 @@
     "type": "entry",
     "mainElement": "EntryAbility",
     "deviceTypes": [
-      "phone"
+      "phone",
+      "tablet"
     ],
     "routerMap": "$profile:route_map",
     "deliveryWithInstall": true,
@@ -49,6 +50,10 @@
         ],
         "startWindowIcon": "$media:app_icon",
         "startWindowBackground": "$color:start_window_background",
+        "supportWindowMode": [
+          "fullscreen",
+          "split"
+        ],
         "exported": true,
         "skills": [
           {
@@ -85,6 +90,21 @@
             "domainVerify": true
           }
         ]
+      },
+      {
+        "name": "SplitScreenAbility",
+        "srcEntry": "./ets/entryability/SplitScreenAbility.ets",
+        "description": "",
+        "icon": "$media:layered_image",
+        "label": "$string:EntryAbility_label",
+        "launchType": "singleton",
+        "startWindowIcon": "$media:app_icon",
+        "startWindowBackground": "$color:start_window_background",
+        "supportWindowMode": [
+          "fullscreen",
+          "split"
+        ],
+        "exported": false
       }
     ],
     "extensionAbilities": [

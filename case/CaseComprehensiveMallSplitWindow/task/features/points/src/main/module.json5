@@ -3,7 +3,8 @@
     "name": "points",
     "type": "har",
     "deviceTypes": [
-      "default"
+      "default",
+      "tablet"
     ],
     "routerMap": "$profile:route_map"
   }

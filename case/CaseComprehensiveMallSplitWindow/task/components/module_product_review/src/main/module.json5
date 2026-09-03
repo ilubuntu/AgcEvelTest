@@ -3,7 +3,8 @@
     "name": "module_product_review",
     "type": "har",
     "deviceTypes": [
-      "default"
+      "default",
+      "tablet"
     ]
   }
 }

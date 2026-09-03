@@ -3,7 +3,8 @@
     "name": "order",
     "type": "har",
     "deviceTypes": [
-      "phone"
+      "phone",
+      "tablet"
     ],
     "routerMap": "$profile:route_map",
     "requestPermissions": [

@@ -3,7 +3,8 @@
     "name": "module_ui_base",
     "type": "har",
     "deviceTypes": [
-      "default"
+      "default",
+      "tablet"
     ]
   }
 }

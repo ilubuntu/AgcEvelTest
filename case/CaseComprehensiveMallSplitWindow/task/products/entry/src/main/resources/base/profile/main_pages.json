@@ -1,5 +1,6 @@
 {
   "src": [
-    "views/Index"
+    "views/Index",
+    "views/SplitIndex"
   ]
 }

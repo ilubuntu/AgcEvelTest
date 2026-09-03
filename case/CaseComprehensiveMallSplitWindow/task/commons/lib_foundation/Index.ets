@@ -10,6 +10,16 @@ export { WindowUtil } from './src/main/ets/utils/WindowUtil';
 
 export { PopViewUtil } from './src/main/ets/utils/PopViewUtil';
 
+export {
+  MAIN_ABILITY_NAME,
+  SPLIT_ABILITY_NAME,
+  SPLIT_PRODUCT_ID_KEY,
+  SPLIT_REVISION_KEY,
+  SPLIT_SLOT_ID_KEY,
+  splitScreenManager,
+  SplitStateListener,
+} from './src/main/ets/utils/SplitScreenManager';
+
 export { UserInfoModel } from './src/main/ets/models/UserInfoModel';
 
 export { Formatter } from './src/main/ets/utils/Formatter';

@@ -8,7 +8,6 @@ import {
   REMOTE_KEY_SIZE,
   RADIUS_KEY,
   RADIUS_PANEL,
-  SPACE_LG,
   SPACE_PAGE,
   SPACE_SECTION,
   SYMBOL_FONT_KEY,
@@ -18,7 +17,6 @@ import {
 import { ScenarioHeader } from '../components/ScenarioChrome';
 import { CaseItem, REMOTE_KEYS } from '../model/CaseModels';
 import { ScenarioRouter } from '../routes/ScenarioRoutes';
-import { LengthMetrics } from '@kit.ArkUI';
 
 @Builder
 export function remoteControlScenarioPageBuilder() {
@@ -62,7 +60,7 @@ struct RemoteControlScenarioPage {
   body() {
     Column({ space: SPACE_SECTION }) {
       this.tvScreen()
-      Flex({ space: { main: LengthMetrics.vp(SPACE_LG), cross: LengthMetrics.vp(0) } }) {
+      Flex({ justifyContent: FlexAlign.SpaceEvenly }) {
         ForEach(REMOTE_KEYS, (item: CaseItem) => {
           this.keyButton(item)
         }, (item: CaseItem) => item.id)

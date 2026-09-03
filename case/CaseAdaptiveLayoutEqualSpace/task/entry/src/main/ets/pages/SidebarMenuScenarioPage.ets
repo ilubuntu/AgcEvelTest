@@ -130,11 +130,12 @@ struct SidebarMenuScenarioPage {
   build() {
     NavDestination() {
       Row() {
-        Column({ space: SPACE_LG }) {
+        Column() {
           ForEach(SIDEBAR_MENUS, (item: CaseItem) => {
             this.menuItem(item)
           }, (item: CaseItem) => item.id)
         }
+        .justifyContent(FlexAlign.SpaceEvenly)
         .id('section-sidebar')
         .width(SIDEBAR_WIDTH)
         .height(FULL_SIZE)

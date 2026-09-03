@@ -6,18 +6,34 @@ import { WindowUtil } from './WindowUtil';
 const TAG: string = '[PopViewUtil]';
 
 export class PopViewUtil {
-  private static _ctx: UIContext;
-  private static _dialogNodes: ComponentContent<Object>[] = [];
-  private static _sheetNode: ComponentContent<Object>[] = [];
+  private static _dialogNodes: Map<string, ComponentContent<Object>[]> = new Map();
+  private static _sheetNodes: Map<string, ComponentContent<Object>[]> = new Map();
 
-  private static async _getUIContext() {
-    if (!PopViewUtil._ctx) {
-      try {
-        PopViewUtil._ctx = WindowUtil.globalUIContext;
-      } catch (err) {
-        Logger.error(TAG, 'get ui context failed.' + JSON.stringify(err));
-      }
+  private static _getUIContext(abilityName: string): UIContext | undefined {
+    try {
+      return WindowUtil.getUIContext(abilityName);
+    } catch (err) {
+      Logger.error(TAG, 'get ui context failed.' + JSON.stringify(err));
+      return undefined;
     }
+  }
+
+  private static _getDialogNodes(abilityName: string): ComponentContent<Object>[] {
+    let nodes: ComponentContent<Object>[] | undefined = PopViewUtil._dialogNodes.get(abilityName);
+    if (nodes === undefined) {
+      nodes = [];
+      PopViewUtil._dialogNodes.set(abilityName, nodes);
+    }
+    return nodes;
+  }
+
+  private static _getSheetNodes(abilityName: string): ComponentContent<Object>[] {
+    let nodes: ComponentContent<Object>[] | undefined = PopViewUtil._sheetNodes.get(abilityName);
+    if (nodes === undefined) {
+      nodes = [];
+      PopViewUtil._sheetNodes.set(abilityName, nodes);
+    }
+    return nodes;
   }
 
   public static async openDialog<T extends Object>(
@@ -25,30 +41,31 @@ export class PopViewUtil {
     options: promptAction.BaseDialogOptions,
     args?: T,
   ) {
-    await PopViewUtil._getUIContext();
-    if (!PopViewUtil._ctx) {
+    const abilityName: string = WindowUtil.activeAbilityName;
+    const uiContext: UIContext | undefined = PopViewUtil._getUIContext(abilityName);
+    if (uiContext === undefined) {
       return;
     }
+    const dialogNodes: ComponentContent<Object>[] = PopViewUtil._getDialogNodes(abilityName);
     if (args) {
-      PopViewUtil._dialogNodes.push(
-        new ComponentContent(PopViewUtil._ctx, builder, args),
+      dialogNodes.push(
+        new ComponentContent(uiContext, builder, args),
       );
     } else {
-      PopViewUtil._dialogNodes.push(
-        new ComponentContent(PopViewUtil._ctx, builder as WrappedBuilder<[]>),
+      dialogNodes.push(
+        new ComponentContent(uiContext, builder as WrappedBuilder<[]>),
       );
     }
 
-    if (PopViewUtil._dialogNodes.length) {
-      const latest =
-        PopViewUtil._dialogNodes[PopViewUtil._dialogNodes.length - 1];
+    if (dialogNodes.length) {
+      const latest = dialogNodes[dialogNodes.length - 1];
       try {
         if (!options.onWillDismiss) {
           options.onWillDismiss = () => {
-            PopViewUtil.closeDialog();
+            PopViewUtil.closeDialog(abilityName);
           };
         }
-        await PopViewUtil._ctx
+        await uiContext
           .getPromptAction()
           .openCustomDialog(latest, options);
         Logger.info(TAG, 'open custom dialog complete.');
@@ -61,16 +78,17 @@ export class PopViewUtil {
     }
   }
 
-  public static closeDialog() {
-    if (PopViewUtil._dialogNodes.length) {
-      const latest =
-        PopViewUtil._dialogNodes[PopViewUtil._dialogNodes.length - 1];
-      PopViewUtil._ctx
+  public static closeDialog(abilityName: string = WindowUtil.activeAbilityName): void {
+    const uiContext: UIContext | undefined = PopViewUtil._getUIContext(abilityName);
+    const dialogNodes: ComponentContent<Object>[] = PopViewUtil._getDialogNodes(abilityName);
+    if (uiContext !== undefined && dialogNodes.length) {
+      const latest = dialogNodes[dialogNodes.length - 1];
+      uiContext
         .getPromptAction()
         .closeCustomDialog(latest)
         .then(() => {
           Logger.info(TAG, 'close custom dialog complete.');
-          PopViewUtil._dialogNodes.pop();
+          dialogNodes.pop();
         })
         .catch((error: BusinessError) => {
           Logger.error(
@@ -86,28 +104,30 @@ export class PopViewUtil {
     options: SheetOptions,
     args?: T,
   ) {
-    await PopViewUtil._getUIContext();
-    if (!PopViewUtil._ctx) {
+    const abilityName: string = WindowUtil.activeAbilityName;
+    const uiContext: UIContext | undefined = PopViewUtil._getUIContext(abilityName);
+    if (uiContext === undefined) {
       return;
     }
+    const sheetNodes: ComponentContent<Object>[] = PopViewUtil._getSheetNodes(abilityName);
     if (args) {
-      PopViewUtil._sheetNode.push(
-        new ComponentContent(PopViewUtil._ctx, builder, args),
+      sheetNodes.push(
+        new ComponentContent(uiContext, builder, args),
       );
     } else {
-      PopViewUtil._sheetNode.push(
-        new ComponentContent(PopViewUtil._ctx, builder as WrappedBuilder<[]>),
+      sheetNodes.push(
+        new ComponentContent(uiContext, builder as WrappedBuilder<[]>),
       );
     }
-    if (PopViewUtil._sheetNode.length) {
-      const latest = PopViewUtil._sheetNode[PopViewUtil._sheetNode.length - 1];
+    if (sheetNodes.length) {
+      const latest = sheetNodes[sheetNodes.length - 1];
       try {
         if (!options.onWillDismiss) {
           options.onWillDismiss = () => {
-            PopViewUtil.closeSheet();
+            PopViewUtil.closeSheet(abilityName);
           };
         }
-        await PopViewUtil._ctx.openBindSheet(latest, options);
+        await uiContext.openBindSheet(latest, options);
         Logger.info(TAG, 'open sheet complete.');
       } catch (err) {
         Logger.error(TAG, `open sheet failed. error: ${JSON.stringify(err)}`);
@@ -115,13 +135,15 @@ export class PopViewUtil {
     }
   }
 
-  public static async closeSheet() {
-    if (PopViewUtil._sheetNode.length) {
-      const latest = PopViewUtil._sheetNode[PopViewUtil._sheetNode.length - 1];
+  public static async closeSheet(abilityName: string = WindowUtil.activeAbilityName) {
+    const uiContext: UIContext | undefined = PopViewUtil._getUIContext(abilityName);
+    const sheetNodes: ComponentContent<Object>[] = PopViewUtil._getSheetNodes(abilityName);
+    if (uiContext !== undefined && sheetNodes.length) {
+      const latest = sheetNodes[sheetNodes.length - 1];
       try {
-        await PopViewUtil._ctx.closeBindSheet(latest);
+        await uiContext.closeBindSheet(latest);
         Logger.info(TAG, 'close sheet complete.');
-        PopViewUtil._sheetNode.pop();
+        sheetNodes.pop();
       } catch (err) {
         Logger.error(TAG, `close sheet failed. error: ${JSON.stringify(err)}`);
       }
@@ -130,11 +152,13 @@ export class PopViewUtil {
     }
   }
 
-  public static async closeAllSheet() {
-    if (PopViewUtil._sheetNode.length) {
-      PopViewUtil._sheetNode.forEach(async (item) => {
+  public static async closeAllSheet(abilityName: string = WindowUtil.activeAbilityName) {
+    const uiContext: UIContext | undefined = PopViewUtil._getUIContext(abilityName);
+    const sheetNodes: ComponentContent<Object>[] = PopViewUtil._getSheetNodes(abilityName);
+    if (uiContext !== undefined && sheetNodes.length) {
+      sheetNodes.forEach(async (item) => {
         try {
-          await PopViewUtil._ctx.closeBindSheet(item);
+          await uiContext.closeBindSheet(item);
           Logger.info(TAG, 'close sheet complete.');
         } catch (err) {
           Logger.error(
@@ -143,7 +167,12 @@ export class PopViewUtil {
           );
         }
       });
-      PopViewUtil._sheetNode = [];
+      PopViewUtil._sheetNodes.set(abilityName, []);
     }
+  }
+
+  public static clearAbility(abilityName: string): void {
+    PopViewUtil._dialogNodes.delete(abilityName);
+    PopViewUtil._sheetNodes.delete(abilityName);
   }
 }
