@@ -3,8 +3,7 @@
     "name": "module_transition",
     "type": "har",
     "deviceTypes": [
-      "phone",
-      "tablet"
+      "phone"
     ],
     "requestPermissions": [{
       "name": "ohos.permission.INTERNET"

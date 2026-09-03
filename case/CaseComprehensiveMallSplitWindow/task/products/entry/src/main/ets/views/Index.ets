@@ -1,4 +1,4 @@
-import { MAIN_ABILITY_NAME, RouterMap, routerStack, WindowUtil } from 'lib_foundation';
+import { RouterMap, routerStack, WindowUtil } from 'lib_foundation';
 import { LoneTakeAnimationsTransition } from 'module_transition';
 import { SetupUtil } from '../utils/SetupUtil';
 
@@ -12,9 +12,8 @@ struct EmptyPage {
 
   aboutToAppear(): void {
     const uiContext = this.getUIContext()
-    WindowUtil.setUIContext(uiContext, MAIN_ABILITY_NAME)
-    WindowUtil.activate(MAIN_ABILITY_NAME)
-    routerStack.registerStack(this.stack, MAIN_ABILITY_NAME)
+    WindowUtil.setUIContext(uiContext)
+    routerStack.registerStack(this.stack)
     this.stack.pushPath({
       name: RouterMap.MAIN_ENTRY,
     }, false)

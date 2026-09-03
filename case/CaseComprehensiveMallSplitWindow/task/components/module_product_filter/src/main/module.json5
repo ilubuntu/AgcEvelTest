@@ -3,8 +3,7 @@
     "name": "module_product_filter",
     "type": "har",
     "deviceTypes": [
-      "phone",
-      "tablet"
+      "phone"
     ]
   }
 }

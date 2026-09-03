@@ -3,8 +3,7 @@
     "name": "lib_widget",
     "type": "har",
     "deviceTypes": [
-      "default",
-      "tablet"
+      "default"
     ]
   }
 }

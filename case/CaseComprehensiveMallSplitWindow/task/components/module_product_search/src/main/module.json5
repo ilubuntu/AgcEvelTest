@@ -3,8 +3,7 @@
     "name": "module_product_search",
     "type": "har",
     "deviceTypes": [
-      "phone",
-      "tablet"
+      "phone"
     ]
   }
 }

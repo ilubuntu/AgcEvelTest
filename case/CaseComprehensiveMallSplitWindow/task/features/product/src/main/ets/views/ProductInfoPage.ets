@@ -1,4 +1,4 @@
-import { ProductInfoPageParam, splitScreenManager, SplitStateListener } from 'lib_foundation';
+import { ProductInfoPageParam } from 'lib_foundation';
 import { CommonSymbol, NavTitleBar } from 'lib_widget';
 import { ProductInfoVM } from '../viewmodels/ProductInfoVM';
 import {
@@ -21,22 +21,6 @@ export function buildProductInfoPage() {
 @ComponentV2
 export struct ProductInfoPage {
   vm: ProductInfoVM = new ProductInfoVM()
-  @Local
-  pageWidth: number = 0
-  @Local
-  isSplitActive: boolean = splitScreenManager.isActive
-  private splitStateListener: SplitStateListener = (active: boolean): void => {
-    this.isSplitActive = active
-  }
-
-  aboutToAppear(): void {
-    this.isSplitActive = splitScreenManager.isActive
-    splitScreenManager.addStateListener(this.splitStateListener)
-  }
-
-  aboutToDisappear(): void {
-    splitScreenManager.removeStateListener(this.splitStateListener)
-  }
 
   build() {
     NavDestination() {
@@ -58,11 +42,6 @@ export struct ProductInfoPage {
     .id('product-info-page')
     .hideTitleBar(true)
     .backgroundColor($r('app.color.background_color_primary'))
-    .onSizeChange((_oldValue: SizeOptions, newValue: SizeOptions) => {
-      if (typeof newValue.width === 'number') {
-        this.pageWidth = newValue.width
-      }
-    })
     .onReady((context) => {
       const params = context.pathInfo.param as ProductInfoPageParam | undefined;
       if (params) {
@@ -83,37 +62,8 @@ export struct ProductInfoPage {
     NavTitleBar({
       title: '商品详情',
     }) {
-      Row({ space: 8 }) {
+      Row({ space: 16 }) {
         if (this.vm.productInfo) {
-          if (this.isSplitActive) {
-            Button('合并')
-              .id('product-merge-action')
-              .height(48)
-              .constraintSize({ minWidth: 56 })
-              .padding({ left: 16, right: 16 })
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.font_color_level1_invert'))
-              .backgroundColor($r('app.color.theme_color'))
-              .type(ButtonType.Capsule)
-              .onClick(() => {
-                this.vm.handleClickSplitOrMerge()
-              })
-          } else if (this.pageWidth >= 600) {
-            Button('分屏')
-              .id('product-split-action')
-              .height(48)
-              .constraintSize({ minWidth: 56 })
-              .padding({ left: 16, right: 16 })
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.theme_color'))
-              .backgroundColor($r('app.color.background_color_theme'))
-              .type(ButtonType.Capsule)
-              .onClick(() => {
-                this.vm.handleClickSplitOrMerge()
-              })
-          }
           CommonSymbol({
             src: this.vm.collectedStatus ? $r('sys.symbol.star_fill') : $r('sys.symbol.star'),
             color: this.vm.collectedStatus ? $r('app.color.theme_color') : $r('sys.color.font_primary'),

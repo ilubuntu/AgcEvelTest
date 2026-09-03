@@ -1,83 +1,24 @@
 import { UtilLog } from '@hw-agconnect/util-log';
 
 const TAG: string = '[RouterUtil]';
-const DEFAULT_ABILITY_NAME: string = 'EntryAbility';
-
-export interface NavigationHistoryItem {
-  name: string;
-  param?: Object;
-}
 
 /**
- * 按 UIAbility 隔离的路由管理工具。
- *
- * 对外保留原 NavPathStack 代理接口，既有页面不需要感知窗口数量；未显式指定
- * Ability 时，所有操作都落到当前获得焦点的窗口。
+ * 单窗口路由管理工具。
  */
 @ObservedV2
 class RouterUtil {
-  private stackMap: Map<string, NavPathStack> = new Map();
-  private activeAbilityName: string = DEFAULT_ABILITY_NAME;
+  private stack?: NavPathStack;
 
-  public registerStack(stack: NavPathStack, abilityName: string = this.activeAbilityName): void {
-    this.stackMap.set(abilityName, stack);
-    this.activeAbilityName = abilityName;
-    UtilLog.info(TAG, 'registerStack: ' + abilityName);
+  public registerStack(stack: NavPathStack): void {
+    this.stack = stack;
+    UtilLog.info(TAG, 'registerStack');
   }
 
-  public activateStack(abilityName: string): void {
-    this.activeAbilityName = abilityName;
-    UtilLog.info(TAG, 'activateStack: ' + abilityName);
-  }
-
-  public unregisterStack(abilityName: string, expectedStack?: NavPathStack): void {
-    const registeredStack: NavPathStack | undefined = this.stackMap.get(abilityName);
-    if (registeredStack === undefined || (expectedStack !== undefined && registeredStack !== expectedStack)) {
-      return;
+  public getStack(): NavPathStack | undefined {
+    if (this.stack === undefined) {
+      UtilLog.warn(TAG, 'getStack: stack not registered');
     }
-    this.stackMap.delete(abilityName);
-    if (this.activeAbilityName === abilityName && this.stackMap.has(DEFAULT_ABILITY_NAME)) {
-      this.activeAbilityName = DEFAULT_ABILITY_NAME;
-    }
-    UtilLog.info(TAG, 'unregisterStack: ' + abilityName);
-  }
-
-  public getStack(abilityName?: string): NavPathStack | undefined {
-    const targetAbility: string = abilityName ?? this.activeAbilityName;
-    const stack: NavPathStack | undefined = this.stackMap.get(targetAbility);
-    if (stack === undefined) {
-      UtilLog.warn(TAG, 'getStack: stack not registered for ' + targetAbility);
-    }
-    return stack;
-  }
-
-  public snapshot(abilityName: string): NavigationHistoryItem[] {
-    const stack: NavPathStack | undefined = this.getStack(abilityName);
-    if (stack === undefined) {
-      return [];
-    }
-    const names: string[] = stack.getAllPathName();
-    const history: NavigationHistoryItem[] = [];
-    for (let index: number = 0; index < names.length; index++) {
-      const item: NavigationHistoryItem = { name: names[index] };
-      const param = stack.getParamByIndex(index) as Object | undefined;
-      if (param !== undefined) {
-        item.param = param as Object;
-      }
-      history.push(item);
-    }
-    return history;
-  }
-
-  public restore(history: NavigationHistoryItem[], abilityName: string): void {
-    const stack: NavPathStack | undefined = this.getStack(abilityName);
-    if (stack === undefined) {
-      return;
-    }
-    stack.clear(false);
-    history.forEach((item: NavigationHistoryItem) => {
-      stack.pushPath({ name: item.name, param: item.param }, false);
-    });
+    return this.stack;
   }
 
   /**

@@ -6,7 +6,6 @@ import {
   ProductInfoPageParam,
   RouterMap,
   routerStack,
-  splitScreenManager,
   WindowUtil,
 } from 'lib_foundation';
 import {
@@ -43,8 +42,6 @@ export class ProductInfoVM {
   countdown?: CountdownModel;
   @Trace
   currentEventId?: number;
-  @Trace
-  isSplitPage: boolean = false;
   @Computed
   get isLogin() {
     return iData.global.isLogin;
@@ -74,7 +71,6 @@ export class ProductInfoVM {
   public async initData(param: ProductInfoPageParam) {
     this.productId = param.productId;
     this.slotId = param.slotId;
-    this.isSplitPage = param.isSplitPage ?? false;
     this.isLoading = true;
     try {
       await this.getProductInfo();
@@ -101,20 +97,6 @@ export class ProductInfoVM {
 
   public handleClickReview() {
     routerStack.pushPath({ name: RouterMap.PRODUCT_REVIEW, param: this.productId });
-  }
-
-  public async handleClickSplitOrMerge(): Promise<void> {
-    if (splitScreenManager.isActive) {
-      if (this.isSplitPage) {
-        await splitScreenManager.mergeFromSplit();
-      } else {
-        await splitScreenManager.mergeFromMain();
-      }
-      return;
-    }
-    if (this.productId.length > 0) {
-      await splitScreenManager.startSplit(this.productId, this.slotId);
-    }
   }
 
   public async changeCollectStatus() {
